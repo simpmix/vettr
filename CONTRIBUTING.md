@@ -1,35 +1,35 @@
-# Contributing to ARGUS ⬡
+# Contributing to VETTR
 
-We welcome contributions from quantitative analysts, forensic accountants, software engineers, and financial researchers!
+We welcome contributions from quantitative analysts, forensic accountants, systems engineers, and financial researchers.
 
-## Code Architecture
-- `argus/edgar/`: Direct client & parsers for US SEC EDGAR (XBRL, 10-K, 10-Q, 8-K, Form 4).
-- `argus/forensics/`: Quantitative forensic models (Beneish M-Score, Altman Z-Score, Piotroski F-Score, DuPont analysis).
-- `argus/diff/`: Natural language processing diff engines for year-over-year filing disclosures.
-- `argus/screener.py`: Multi-ticker batch anomaly scanner.
-- `argus/web/`: FastAPI server and high-density terminal frontend.
+## Architecture
+
+- `vettr/edgar/`: SEC EDGAR API clients, XBRL GAAP parsers, Form 4 insider scrapers, rate limiting.
+- `vettr/forensics/`: Quantitative forensic models (Beneish M-Score, Altman Z-Score, Piotroski F-Score, DuPont decomposition, Loughran-McDonald NLP).
+- `vettr/diff/`: Natural language processing diff engines for year-over-year filing disclosures.
+- `vettr/screener.py`: Multi-ticker batch anomaly scanner.
+- `vettr/web/`: FastAPI server and Swiss-brutalist financial workstation.
 
 ## Development Setup
 
-1. Clone the repository:
+1. Clone repository:
    ```bash
-   git clone https://github.com/your-username/argus.git
-   cd argus
+   git clone https://github.com/simpmix/vettr.git
+   cd vettr
    ```
 2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-3. Run the test suite:
+3. Run test suite:
    ```bash
    python -m unittest discover tests/
    ```
-4. Launch the local development terminal:
+4. Launch local workstation:
    ```bash
    python run.py
    ```
 
-## Pull Request Guidelines
-- Ensure any new forensic model or metric has accompanying unit tests in `tests/`.
-- Cite academic literature or authoritative financial accounting standards (e.g. Beneish 1999, Altman 1968, US GAAP ASC standards) when introducing new accounting formulas.
-- Maintain compliant SEC EDGAR rate-limiting headers in `argus/config.py`.
+## PR Protocols
+- All formula modifications must include unit test coverage in `tests/test_metrics.py`.
+- Cite academic literature or authoritative US GAAP ASC standards when introducing new metrics.

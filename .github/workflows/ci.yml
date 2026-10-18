@@ -1,4 +1,4 @@
-name: ARGUS CI Pipeline
+name: VETTR CI Pipeline
 
 on:
   push:

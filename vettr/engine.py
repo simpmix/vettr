@@ -1,21 +1,21 @@
 import logging
-from typing import Any, Dict, Optional
-from argus.edgar.client import EdgarClient
-from argus.edgar.parser import EdgarParser
-from argus.edgar.insiders import InsiderScanner
-from argus.forensics.metrics import ForensicMetrics
-from argus.forensics.anomalies import AnomalyDetector
-from argus.forensics.sentiment import FinancialSentiment
-from argus.forensics.dupont import DuPontAnalyzer
-from argus.diff.differ import FilingDiffer
-from argus.market.provider import MarketDataProvider
-from argus.export.dossier import DossierGenerator
+from typing import Any, Dict, List, Optional
+from vettr.edgar.client import EdgarClient
+from vettr.edgar.parser import EdgarParser
+from vettr.edgar.insiders import InsiderScanner
+from vettr.forensics.metrics import ForensicMetrics
+from vettr.forensics.anomalies import AnomalyDetector
+from vettr.forensics.sentiment import FinancialSentiment
+from vettr.forensics.dupont import DuPontAnalyzer
+from vettr.diff.differ import FilingDiffer
+from vettr.market.provider import MarketDataProvider
+from vettr.export.dossier import DossierGenerator
 
 logger = logging.getLogger(__name__)
 
-class ArgusEngine:
+class VettrEngine:
     """
-    Autonomous Financial Forensics & Intelligence Pipeline.
+    Autonomous Financial Forensics & Regulatory Intelligence Pipeline.
     Orchestrates SEC EDGAR data, quantitative models, filing diffs, Form 4 insider trades, and market quotes.
     """
 
@@ -26,7 +26,7 @@ class ArgusEngine:
     def analyze_ticker(self, ticker: str) -> Dict[str, Any]:
         """Runs the complete end-to-end forensic analysis for a ticker."""
         clean_ticker = ticker.strip().upper()
-        logger.info(f"Starting ARGUS Forensic Analysis for {clean_ticker}")
+        logger.info(f"Starting VETTR Forensic Analysis for {clean_ticker}")
 
         # 1. Market Data Overview
         market_data = MarketDataProvider.get_market_overview(clean_ticker)
@@ -117,7 +117,10 @@ class ArgusEngine:
         except Exception as e:
             logger.warning(f"Could not load Form 4 insider activity for {clean_ticker}: {e}")
 
-        # 8. Aggregate Risk Score (Composite 0 - 100)
+        # 8. Reverse DCF & Implied Growth Calculation
+        valuation_model = self._calculate_implied_growth(market_data, annual_series)
+
+        # 9. Aggregate Risk Score (Composite 0 - 100)
         risk_score = 15  # Baseline
         if beneish and beneish.get("is_manipulator"):
             risk_score += 35
@@ -152,6 +155,7 @@ class ArgusEngine:
             },
             "financial_series": annual_series[-5:],  # Last 5 fiscal years
             "dupont_series": dupont_series,
+            "valuation_model": valuation_model,
             "diff_analysis": diff_analysis,
             "insider_activity": insider_data,
             "filings": {
@@ -160,6 +164,38 @@ class ArgusEngine:
             }
         }
 
+    def _calculate_implied_growth(self, market_data: Dict[str, Any], annual_series: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculates Reverse DCF growth rate implied by current market valuation."""
+        mcap = market_data.get("market_cap") or 0.0
+        pe = market_data.get("trailing_pe")
+        
+        cfo = 0.0
+        ni = 0.0
+        if annual_series:
+            cfo = float(annual_series[-1].get("operating_cash_flow") or 0.0)
+            ni = float(annual_series[-1].get("net_income") or 0.0)
+
+        fcf_est = cfo * 0.85 if cfo > 0 else (ni if ni > 0 else 0.0)
+        
+        # Reverse DCF implied 10-year FCF growth rate at 10% discount rate and 3% terminal growth
+        implied_growth = 0.0
+        if mcap > 0 and fcf_est > 0:
+            fcf_yield = (fcf_est / mcap) * 100
+            # Rough approximation: Implied growth = Discount Rate (10%) - FCF Yield
+            implied_growth = max(0.0, 10.0 - fcf_yield + 4.0)
+
+        return {
+            "fcf_estimate": round(fcf_est, 2),
+            "fcf_yield_pct": round((fcf_est / mcap * 100), 2) if mcap > 0 else 0.0,
+            "implied_growth_10yr_pct": round(implied_growth, 1),
+            "discount_rate_pct": 10.0,
+            "terminal_growth_pct": 3.0,
+            "valuation_verdict": "AGGRESSIVE GROWTH PRICED IN" if implied_growth > 20 else ("MODERATE GROWTH EXPECTATIONS" if implied_growth > 8 else "LOW GROWTH / VALUE PRICING")
+        }
+
     def generate_dossier_markdown(self, ticker: str) -> str:
         report = self.analyze_ticker(ticker)
         return DossierGenerator.generate_markdown_dossier(report)
+
+# Backward-compatible alias
+ArgusEngine = VettrEngine

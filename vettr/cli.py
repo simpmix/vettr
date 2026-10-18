@@ -5,7 +5,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich.text import Text
 from rich import box
-from argus.engine import ArgusEngine
+from vettr.engine import VettrEngine
 
 console = Console(safe_box=True)
 
@@ -22,7 +22,7 @@ def print_cli_report(data: dict):
     chg_str = f"[{chg_color}]{chg:+.2f}%[/{chg_color}]"
 
     header_text = Text()
-    header_text.append(f"ARGUS TERMINAL // {ticker} : {mkt.get('name', '')}\n", style="bold cyan")
+    header_text.append(f"VETTR RESEARCH TERMINAL // {ticker} : {mkt.get('name', '')}\n", style="bold cyan")
     header_text.append(f"Price: {price_str} ({chg:+.2f}%) | Market Cap: ${mkt.get('market_cap', 0):,}\n", style="white")
     header_text.append(f"Sector: {mkt.get('sector')} | Industry: {mkt.get('industry')}", style="dim")
 
@@ -128,12 +128,12 @@ def print_cli_report(data: dict):
         console.print(Panel(diff_text, title="YoY Filing Delta (Item 1A Risk Factors)", border_style="magenta"))
 
 def main():
-    parser = argparse.ArgumentParser(description="ARGUS Financial Forensics Terminal")
+    parser = argparse.ArgumentParser(description="VETTR Financial Forensics Terminal")
     parser.add_argument("ticker", nargs="?", default="NVDA", help="Stock ticker (e.g. NVDA, AAPL, TSLA)")
     args = parser.parse_args()
 
     console.print(f"[bold cyan]Querying SEC EDGAR & Market feeds for {args.ticker.upper()}...[/bold cyan]")
-    engine = ArgusEngine()
+    engine = VettrEngine()
     result = engine.analyze_ticker(args.ticker)
 
     if "error" in result and not result.get("forensics"):

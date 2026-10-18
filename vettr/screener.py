@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 from rich.console import Console
 from rich.table import Table
 from rich import box
-from argus.engine import ArgusEngine
+from vettr.engine import VettrEngine
 
 logger = logging.getLogger(__name__)
 
@@ -15,14 +15,14 @@ PRESET_WATCHLISTS = {
     "ev_clean": ["TSLA", "RIVN", "LCID", "NIO", "ENPH"]
 }
 
-class ArgusScreener:
+class VettrScreener:
     """
     Batch quantitative screener for scanning groups of tickers across SEC EDGAR.
     Ranks stocks by forensic risk, accounting anomalies, and default distress.
     """
 
     def __init__(self):
-        self.engine = ArgusEngine()
+        self.engine = VettrEngine()
 
     def screen_tickers(self, tickers: List[str]) -> List[Dict[str, Any]]:
         results = []
@@ -56,8 +56,11 @@ class ArgusScreener:
         results.sort(key=lambda x: x["risk_score"], reverse=True)
         return results
 
+# Backward-compatible alias
+ArgusScreener = VettrScreener
+
 def main():
-    parser = argparse.ArgumentParser(description="ARGUS Batch Forensic Screener")
+    parser = argparse.ArgumentParser(description="VETTR Batch Forensic Screener")
     parser.add_argument("--list", default="mega_tech", choices=list(PRESET_WATCHLISTS.keys()), help="Preset watchlist")
     parser.add_argument("--tickers", nargs="*", help="Custom list of tickers (e.g. NVDA TSLA AAPL)")
     args = parser.parse_args()
@@ -65,12 +68,12 @@ def main():
     tickers = [t.upper() for t in args.tickers] if args.tickers else PRESET_WATCHLISTS[args.list]
 
     console = Console(safe_box=True)
-    console.print(f"[bold cyan]Running ARGUS Forensic Screener on: {', '.join(tickers)}...[/bold cyan]")
+    console.print(f"[bold cyan]Running VETTR Forensic Screener on: {', '.join(tickers)}...[/bold cyan]")
 
-    screener = ArgusScreener()
+    screener = VettrScreener()
     results = screener.screen_tickers(tickers)
 
-    table = Table(title="[bold yellow]ARGUS FORENSIC SCREENER LEADERBOARD (SORTED BY RISK)[/bold yellow]", box=box.ROUNDED, expand=True)
+    table = Table(title="[bold yellow]VETTR FORENSIC SCREENER LEADERBOARD (SORTED BY RISK)[/bold yellow]", box=box.ROUNDED, expand=True)
     table.add_column("Rank", style="dim", width=6)
     table.add_column("Ticker", style="bold white", width=10)
     table.add_column("Company", width=22)

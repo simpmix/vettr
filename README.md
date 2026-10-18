@@ -1,128 +1,133 @@
-# ⬡ ARGUS TERMINAL
-### Autonomous Regulatory & Financial Intelligence Engine
-> **The Open-Source Bloomberg Alternative for Forensic Accounting, SEC EDGAR Disclosures & Anomaly Detection.**
+# VETTR
+### Autonomous Financial Forensics & Regulatory Intelligence Workstation
+> **The open-source Bloomberg alternative for SEC EDGAR accounting forensics, Beneish earnings manipulation models, and filing diffs.**
 
-[![Status](https://img.shields.io/badge/Status-Live%20Engine-00F090?style=for-the-badge)](https://github.com)
-[![Python](https://img.shields.io/badge/Python-3.13+-00D4FF?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![SEC EDGAR](https://img.shields.io/badge/Data-US%20SEC%20EDGAR%20XBRL-FFB020?style=for-the-badge)](https://sec.gov/edgar)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blueviolet?style=for-the-badge)](#)
-
----
-
-## 🏛️ Executive Summary
-
-Institutional financial terminals like **Bloomberg**, **FactSet**, and **AlphaSense** charge upwards of **$24,000 per user per year**. Yet, the foundation of all US financial intelligence—audited 10-K filings, 10-Q quarterly reports, 8-K material event disclosures, and XBRL company facts—is **100% free and publicly mandated by the US Securities and Exchange Commission (SEC)**.
-
-**ARGUS** bridges this gap. It is an autonomous, local-first financial forensics and regulatory intelligence workstation that interrogates the SEC EDGAR archive to surface:
-1. **Earnings Manipulation Risk** (via the 8-variable Beneish M-Score).
-2. **Insolvency & Default Hazards** (via the Altman Z-Score).
-3. **Fundamental Financial Health** (via the 9-point Piotroski F-Score).
-4. **Accounting & Accrual Anomalies** (Operating cash flow decoupling, DSO channel stuffing, inventory bloat).
-5. **Regulatory Red Flag Triggers** (Automated scanning for subpoenas, restatements, internal control weaknesses).
-6. **Loughran-McDonald Financial Sentiment** (Quantifying hedging language, litigious density, and management uncertainty).
-7. **YoY 10-K Section Delta / Semantic Diff** (Pinpointing newly inserted or silently removed risk factors).
+[![Status](https://img.shields.io/badge/Status-Active%20Engine-10B981?style=flat-square)](https://github.com/simpmix/vettr)
+[![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-FAFAFA?style=flat-square&logo=python&logoColor=black)](https://python.org)
+[![SEC EDGAR](https://img.shields.io/badge/Data-US%20SEC%20EDGAR%20XBRL-06B6D4?style=flat-square)](https://sec.gov/edgar)
+[![License](https://img.shields.io/badge/License-Apache%202.0-FAFAFA?style=flat-square)](#)
 
 ---
 
-## ⚡ Architecture & Tech Stack
+## Executive Overview
 
-ARGUS requires **$0 in cloud hosting bills** to operate, utilizing official public SEC REST APIs, local headless extraction, and a high-performance terminal architecture:
+Institutional financial platforms like Bloomberg, FactSet, and AlphaSense charge upwards of **$24,000/seat/year**. Yet the foundation of all US financial intelligence—audited 10-K annual reports, 10-Q quarterly reports, 8-K material event filings, and XBRL company facts—is **100% free and publicly mandated by the US Securities and Exchange Commission (SEC)**.
+
+**VETTR** is a local-first, zero-cloud-cost financial forensics terminal that interrogates the SEC EDGAR archive to surface accounting anomalies, corporate governance risks, and hidden disclosure modifications before the market catches on.
+
+---
+
+## Core Capabilities
+
+1. **Beneish M-Score (Messod Beneish, 1999)**
+   * Complete 8-factor probabilistic earnings manipulation detection model:
+     - Days Sales in Receivables Index (DSRI)
+     - Gross Margin Index (GMI)
+     - Asset Quality Index (AQI)
+     - Sales Growth Index (SGI)
+     - Depreciation Index (DEPI)
+     - SG&A Expense Index (SGAI)
+     - Leverage Index (LVGI)
+     - Total Accruals to Total Assets (TATA)
+   * Statistically flags companies with M-Score > -1.78.
+
+2. **Altman Z-Score (Edward Altman, 1968)**
+   * Empirical discriminant analysis predicting default and insolvency distress for public manufacturing and service corporations within 24 months.
+
+3. **Piotroski F-Score (Joseph Piotroski, 2000)**
+   * 9-signal discrete fundamental health scorecard measuring profitability momentum, liquidity, and operational leverage.
+
+4. **DuPont 3-Way & 5-Way Return on Equity Engine**
+   * Deconstructs ROE across Net Profit Margin, Asset Turnover, and Financial Leverage across all historical fiscal years.
+
+5. **Item 1A Risk Factors Semantic Diff**
+   * Sentence-by-sentence comparison of consecutive 10-K filings to expose silently inserted regulatory inquiries, customer losses, or struck disclaimers.
+
+6. **Loughran-McDonald Financial NLP Lexicon**
+   * Domain-specific sentiment analysis tracking litigious word density, hedging, uncertainty, and constraining covenants.
+
+7. **SEC Form 4 Insider Radar**
+   * Real-time monitoring of C-suite (CEO, CFO, Director) open-market transactions and cluster sales.
+
+8. **Reverse DCF Implied Growth Model**
+   * Calculates the exact annual Free Cash Flow growth rate required by the current market price over the next 10 years.
+
+9. **Head-to-Head Peer Comparison & Screener**
+   * Side-by-side benchmarking of multiple equities with ranked risk scoring.
+
+10. **Dual Institutional Export**
+    * 1-Click generation of publication-ready Due Diligence Memorandums in Markdown and structured GAAP financial data in CSV/JSON.
+
+---
+
+## Quickstart
+
+### Launch the Workstation (Recommended)
+```bash
+python run.py
+```
+Opens the live Swiss-brutalist workstation at:
+👉 **`http://localhost:8000`**
+
+### Command-Line Interface (Quants & Terminal Users)
+```bash
+# Scan a company
+python -m vettr.cli NVDA
+python -m vettr.cli AAPL
+python -m vettr.cli TSLA
+
+# Run batch screener across watchlists
+python -m vettr.screener --list mega_tech
+python -m vettr.screener --list semis
+```
+
+### Run Automated Test Suite
+```bash
+python -m unittest discover tests/
+```
+
+---
+
+## Architecture
+
+VETTR runs 100% locally with **$0 in cloud bills**:
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│                   ARGUS WEB TERMINAL                   │
-│         (High-Density Dark HUD + Keyboard Shortcuts)    │
+│                   VETTR WORKSTATION                    │
+│   (Swiss-Brutalist HUD • Autocomplete • Calibri Tnum)  │
 └───────────────────────────▲────────────────────────────┘
                             │ REST / JSON
 ┌───────────────────────────┴────────────────────────────┐
 │                    FastAPI Web Core                    │
 ├────────────────────────────────────────────────────────┤
-│                     ARGUS ENGINE                       │
+│                      VETTR ENGINE                      │
 │  ┌───────────────────────┬───────────────────────────┐ │
 │  │   SEC EDGAR CLIENT    │   FORENSIC SUITE          │ │
 │  │   • CIK Resolver      │   • Beneish M-Score       │ │
 │  │   • XBRL CompanyFacts │   • Altman Z-Score        │ │
-│  │   • Submissions / 8-K │   • Piotroski F-Score     │ │
+│  │   • Form 4 Insiders   │   • Piotroski F-Score     │ │
+│  │   • 10-K Submissions  │   • DuPont 5-Way Engine   │ │
 │  ├───────────────────────┼───────────────────────────┤ │
-│  │   DISCLOSURE PARSER   │   ANOMALY DETECTOR        │ │
-│  │   • Item 1A Risk Diff │   • CFO / Net Income Gap  │ │
-│  │   • Item 7 MD&A       │   • Receivables Surge     │ │
-│  │   • LM Tone Sentiment │   • Regulatory Triggers   │ │
+│  │   DISCLOSURE PARSER   │   VALUATION & SCREENER    │ │
+│  │   • Item 1A Risk Diff │   • Reverse DCF Model     │ │
+│  │   • LM Tone Analysis  │   • Peer Group Comparison │ │
+│  │   • Accrual Anomalies │   • Batch Anomaly Radar   │ │
 │  └───────────────────────┴───────────────────────────┘ │
 └───────────────────────────▲────────────────────────────┘
                             │ Free Public Feeds
         ┌───────────────────┴───────────────────┐
-        │  • SEC EDGAR (data.sec.gov)           │
-        │  • Yahoo Finance (Real-time Market)   │
+        │  • U.S. SEC EDGAR (data.sec.gov)      │
+        │  • Real-Time Market Data Provider     │
         └───────────────────────────────────────┘
 ```
 
 ---
 
-## 🚀 Quickstart
+## Contributing
 
-### 1. Launch the Live Web Terminal (Recommended)
-Double-click `run.py` or execute:
-```bash
-python run.py
-```
-This automatically boots the server and opens your browser at:
-👉 **`http://localhost:8000`**
+See [CONTRIBUTING.md](CONTRIBUTING.md) for architecture guidelines, pull request protocols, and development setup.
 
-### 2. Run Instant CLI Forensic Scans
-For terminal power users and quants:
-```bash
-# Scan NVIDIA
-python -m argus.cli NVDA
+## License
 
-# Scan Apple
-python -m argus.cli AAPL
-
-# Scan Tesla
-python -m argus.cli TSLA
-```
-
----
-
-## 🔬 Forensic Models Built into ARGUS
-
-### 1. Beneish M-Score (Earnings Manipulation)
-Developed by Prof. Messod Beneish, this probabilistic model evaluates 8 distinct balance sheet and income statement ratios:
-* **DSRI** (Days Sales in Receivables Index)
-* **GMI** (Gross Margin Index)
-* **AQI** (Asset Quality Index)
-* **SGI** (Sales Growth Index)
-* **DEPI** (Depreciation Rate Index)
-* **SGAI** (SG&A Expense Index)
-* **LVGI** (Leverage Ratio Index)
-* **TATA** (Total Accruals to Total Assets)
-
-$$\text{M-Score} = -4.84 + 0.920 \cdot \text{DSRI} + 0.528 \cdot \text{GMI} + 0.404 \cdot \text{AQI} + 0.892 \cdot \text{SGI} + 0.115 \cdot \text{DEPI} - 0.172 \cdot \text{SGAI} + 4.037 \cdot \text{TATA} + 0.0327 \cdot \text{LVGI}$$
-
-> **Interpretation:** Scores **greater than -1.78** indicate an elevated statistical probability of earnings manipulation.
-
-### 2. Altman Z-Score (Credit & Insolvency Distress)
-Evaluates working capital, retained earnings, EBIT, equity capitalization, and asset turnover to predict bankruptcy within 24 months:
-* **Safe Zone:** $Z > 2.99$ (Low distress probability)
-* **Grey Zone:** $1.81 \le Z \le 2.99$ (Moderate risk)
-* **Distress Zone:** $Z < 1.81$ (High insolvency hazard)
-
-### 3. Loughran-McDonald Financial Lexicon Tone
-Standard English NLP sentiment classifiers miscategorize financial vocabulary (e.g. "liability", "tax", "cost"). ARGUS utilizes the **Loughran-McDonald Financial Dictionary** to track:
-* **Uncertainty & Hedging Density**
-* **Litigious Vocabulary Rate**
-* **Constraining Covenants**
-* **Net Sentiment Polarity**
-
----
-
-## 💰 How to Turn This Into a Lucrative Business ($0 Upfront)
-
-1. **Commercial Open Source Software (COSS):**
-   * Host the open-source repo on GitHub.
-   * Monetize with an **Enterprise Cloud Hosted Version** ($49/month or $499/year for equity analysts, retail quants, and short-sellers).
-2. **Paid Substack / Subscriptions for "Forensic Short Alerts":**
-   * Run ARGUS across the S&P 500 or Russell 2000 weekly to detect stocks exhibiting M-Score anomalies or sudden Risk Factor insertions.
-   * Publish a weekly newsletter: *"The Forensic Insider"* charging $50–$100/mo.
-3. **Automated API Access:**
-   * Charge algorithmic funds and fintech startups for REST API access to parsed SEC risk diffs and Beneish ratings via RapidAPI or Stripe.
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.

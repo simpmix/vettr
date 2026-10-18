@@ -3,21 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ARGUS // Financial Forensics &amp; Regulatory Intelligence Terminal</title>
+  <title>VETTR // Autonomous Financial Forensics &amp; Regulatory Intelligence Terminal</title>
   <link rel="stylesheet" href="/static/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 </head>
 <body class="terminal-body">
-  <!-- Minimalist Header -->
+  <!-- Minimalist Header with Sleek Custom VETTR Logo -->
   <header class="terminal-header">
     <div class="header-left">
       <div class="brand">
-        <div class="brand-symbol">A</div>
+        <!-- Sleek Custom VETTR Geometric Monogram SVG -->
+        <svg class="brand-logo-svg" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 4L14 24L25 4H19.5L14 15L8.5 4H3Z" fill="#FFFFFF"/>
+          <path d="M10 4L14 11.5L18 4H20.5L14 16.5L7.5 4H10Z" fill="#71717A"/>
+        </svg>
         <div class="brand-text">
-          <span class="brand-name">ARGUS RESEARCH</span>
-          <span class="brand-meta">U.S. SEC EDGAR FORENSICS</span>
+          <span class="brand-name">VETTR</span>
+          <span class="brand-sub">SEC EDGAR FORENSICS TERMINAL</span>
         </div>
       </div>
       <div class="system-status">
@@ -50,12 +54,19 @@
       <div id="search-dropdown" class="search-dropdown hidden"></div>
     </div>
 
+    <!-- Header Actions -->
     <div class="header-right">
-      <button id="btn-export-dossier" class="btn-secondary" title="Export Markdown Due Diligence Dossier">
+      <button id="btn-copy-brief" class="btn-action" title="Copy Executive Brief to Clipboard">
+        COPY BRIEF
+      </button>
+      <button id="btn-export-csv" class="btn-action" title="Export 5-Year Financials to CSV">
+        CSV EXPORT
+      </button>
+      <button id="btn-export-dossier" class="btn-action primary" title="Export Markdown Due Diligence Dossier">
         EXPORT DOSSIER (.MD)
       </button>
-      <button id="btn-export-json" class="btn-secondary" title="Export Raw Financial Data JSON">
-        EXPORT JSON
+      <button id="btn-export-json" class="btn-action" title="Export Raw Financial Data JSON">
+        JSON
       </button>
     </div>
   </header>
@@ -117,12 +128,14 @@
     <nav class="terminal-tabs">
       <button class="tab-btn active" data-tab="tab-models">01. FORENSIC MODELS</button>
       <button class="tab-btn" data-tab="tab-anomalies">02. ANOMALY DETECTOR</button>
-      <button class="tab-btn" data-tab="tab-diff">03. 10-K DISCLOSURE DELTA</button>
-      <button class="tab-btn" data-tab="tab-dupont">04. DUPONT ROE ENGINE</button>
-      <button class="tab-btn" data-tab="tab-insiders">05. FORM 4 INSIDER RADAR</button>
-      <button class="tab-btn" data-tab="tab-screener">06. BATCH SCREENER</button>
-      <button class="tab-btn" data-tab="tab-financials">07. AUDITED GAAP XBRL</button>
-      <button class="tab-btn" data-tab="tab-archive">08. SEC ARCHIVE</button>
+      <button class="tab-btn" data-tab="tab-valuation">03. REVERSE DCF VALUATION</button>
+      <button class="tab-btn" data-tab="tab-diff">04. 10-K DISCLOSURE DELTA</button>
+      <button class="tab-btn" data-tab="tab-dupont">05. DUPONT ROE ENGINE</button>
+      <button class="tab-btn" data-tab="tab-insiders">06. FORM 4 INSIDER RADAR</button>
+      <button class="tab-btn" data-tab="tab-compare">07. PEER COMPARISON</button>
+      <button class="tab-btn" data-tab="tab-screener">08. BATCH SCREENER</button>
+      <button class="tab-btn" data-tab="tab-financials">09. AUDITED GAAP XBRL</button>
+      <button class="tab-btn" data-tab="tab-archive">10. SEC ARCHIVE</button>
     </nav>
 
     <!-- Content Sections -->
@@ -142,12 +155,10 @@
             </div>
             <div id="beneish-status" class="assessment-banner red">PROBABLE MANIPULATION RISK</div>
             <p class="card-methodology">
-              8-variable probabilistic accounting regression. Scores above -1.78 indicate high statistical probability of earnings inflation or accelerated revenue.
+              8-variable probabilistic accounting regression. Scores above -1.78 indicate high statistical probability of earnings inflation or accelerated revenue recognition.
             </p>
             <table class="factors-table" id="beneish-table">
-              <tbody>
-                <!-- Rendered by JS -->
-              </tbody>
+              <tbody></tbody>
             </table>
           </div>
 
@@ -166,9 +177,7 @@
               Empirical discriminant analysis predicting corporate solvency and insolvency probability within a 24-month horizon.
             </p>
             <table class="factors-table" id="altman-table">
-              <tbody>
-                <!-- Rendered by JS -->
-              </tbody>
+              <tbody></tbody>
             </table>
           </div>
 
@@ -187,9 +196,7 @@
               9-signal discrete binary metric evaluating operational momentum, balance sheet liquidity, and capital structure discipline.
             </p>
             <table class="factors-table" id="piotroski-table">
-              <tbody>
-                <!-- Rendered by JS -->
-              </tbody>
+              <tbody></tbody>
             </table>
           </div>
         </div>
@@ -204,9 +211,7 @@
               <span class="section-title">Quantitative Accrual Divergences</span>
               <span id="anomaly-count-pill" class="pill-badge red">2 FLAGGED</span>
             </div>
-            <div id="anomalies-container">
-              <!-- Rendered via JS -->
-            </div>
+            <div id="anomalies-container"></div>
           </div>
 
           <!-- Regulatory & Sentiment -->
@@ -214,9 +219,7 @@
             <div class="section-header">
               <span class="section-title">Regulatory Disclosures &amp; Lexicon Tone</span>
             </div>
-            <div id="regulatory-container">
-              <!-- Rendered via JS -->
-            </div>
+            <div id="regulatory-container"></div>
             <div class="sentiment-grid">
               <div class="sent-card">
                 <span class="sent-card-label">Uncertainty</span>
@@ -239,7 +242,42 @@
         </div>
       </section>
 
-      <!-- 03. 10-K DISCLOSURE DELTA -->
+      <!-- 03. REVERSE DCF VALUATION -->
+      <section id="tab-valuation" class="tab-panel">
+        <div class="section-box full">
+          <div class="section-header">
+            <span class="section-title">Reverse Discounted Cash Flow (DCF) Implied Expectations</span>
+            <span id="valuation-verdict-badge" class="pill-badge">PRICED FOR AGGRESSIVE GROWTH</span>
+          </div>
+          <p class="card-methodology" style="margin-bottom: 20px;">
+            Instead of predicting the future, Reverse DCF calculates the exact annual Free Cash Flow growth rate the current stock price requires over the next 10 years at a 10% discount rate and 3% terminal growth rate.
+          </p>
+          <div class="valuation-grid">
+            <div class="val-card">
+              <div class="val-card-label">Implied 10-Year Annual Growth</div>
+              <div id="val-implied-growth" class="val-card-num num">24.5%</div>
+              <div class="val-card-sub">Required annual FCF expansion</div>
+            </div>
+            <div class="val-card">
+              <div class="val-card-label">Estimated Free Cash Flow (TTM)</div>
+              <div id="val-fcf-est" class="val-card-num num">$52.4B</div>
+              <div class="val-card-sub">Operating cash flow adjusted</div>
+            </div>
+            <div class="val-card">
+              <div class="val-card-label">Free Cash Flow Yield</div>
+              <div id="val-fcf-yield" class="val-card-num num">1.01%</div>
+              <div class="val-card-sub">FCF / Market Capitalization</div>
+            </div>
+            <div class="val-card">
+              <div class="val-card-label">Model Discount Rate</div>
+              <div class="val-card-num num">10.0%</div>
+              <div class="val-card-sub">3.0% Terminal Growth</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 04. 10-K DISCLOSURE DELTA -->
       <section id="tab-diff" class="tab-panel">
         <div class="section-box full">
           <div class="section-header">
@@ -263,7 +301,7 @@
         </div>
       </section>
 
-      <!-- 04. DUPONT ROE ENGINE -->
+      <!-- 05. DUPONT ROE ENGINE -->
       <section id="tab-dupont" class="tab-panel">
         <div class="section-box full">
           <div class="section-header">
@@ -290,7 +328,7 @@
         </div>
       </section>
 
-      <!-- 05. FORM 4 INSIDER RADAR -->
+      <!-- 06. FORM 4 INSIDER RADAR -->
       <section id="tab-insiders" class="tab-panel">
         <div class="section-box full">
           <div class="section-header">
@@ -317,7 +355,38 @@
         </div>
       </section>
 
-      <!-- 06. BATCH SCREENER -->
+      <!-- 07. PEER COMPARISON -->
+      <section id="tab-compare" class="tab-panel">
+        <div class="section-box full">
+          <div class="section-header">
+            <span class="section-title">Head-to-Head Peer Forensic Comparison</span>
+            <div class="screener-switcher">
+              <input type="text" id="compare-input" placeholder="TICKERS (e.g. NVDA, AMD, INTC)..." style="background: var(--bg-canvas); border: 1px solid var(--border-hairline); color: #FFF; padding: 4px 8px; font-size: 11px; width: 220px;" value="NVDA, AMD, INTC">
+              <button id="btn-run-compare" class="preset-btn">COMPARE</button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table id="compare-table" class="brutalist-table">
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Company Name</th>
+                  <th class="num">Market Price</th>
+                  <th class="num">Market Cap</th>
+                  <th class="num">Risk Score</th>
+                  <th class="num">Beneish M-Score</th>
+                  <th class="num">Altman Z-Score</th>
+                  <th class="num">Piotroski F</th>
+                  <th class="num">Anomalies</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 08. BATCH SCREENER -->
       <section id="tab-screener" class="tab-panel">
         <div class="section-box full">
           <div class="section-header">
@@ -350,7 +419,7 @@
         </div>
       </section>
 
-      <!-- 07. AUDITED GAAP XBRL -->
+      <!-- 09. AUDITED GAAP XBRL -->
       <section id="tab-financials" class="tab-panel">
         <div class="section-box full">
           <div class="section-header">
@@ -370,7 +439,7 @@
         </div>
       </section>
 
-      <!-- 08. SEC ARCHIVE -->
+      <!-- 10. SEC ARCHIVE -->
       <section id="tab-archive" class="tab-panel">
         <div class="section-box full">
           <div class="section-header">
@@ -397,9 +466,9 @@
     </div>
   </main>
 
-  <!-- Clean Footer -->
+  <!-- Clean Minimalist Footer -->
   <footer class="terminal-footer">
-    <span>ARGUS FINANCIAL RESEARCH TERMINAL • SEC EDGAR AUDIT ENGINE</span>
+    <span>VETTR FINANCIAL RESEARCH TERMINAL • SEC EDGAR AUDIT ENGINE</span>
     <span>HOTKEY: PRESS [/] FOR COMMAND SEARCH</span>
   </footer>
 

@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import requests
-from argus.config import CACHE_DIR, SEC_HEADERS, SEC_WWW_HEADERS
+from vettr.config import CACHE_DIR, SEC_HEADERS, SEC_WWW_HEADERS
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 import unittest
-from argus.forensics.metrics import ForensicMetrics
-from argus.forensics.anomalies import AnomalyDetector
-from argus.forensics.dupont import DuPontAnalyzer
+from vettr.forensics.metrics import ForensicMetrics
+from vettr.forensics.anomalies import AnomalyDetector
+from vettr.forensics.dupont import DuPontAnalyzer
 
 class TestForensicSuite(unittest.TestCase):
     def setUp(self):
@@ -55,7 +55,7 @@ class TestForensicSuite(unittest.TestCase):
 
     def test_cash_flow_divergence_flag(self):
         bad_current = dict(self.clean_current)
-        bad_current["operating_cash_flow"] = 2_000_000.0  # Big drop compared to 15M net income
+        bad_current["operating_cash_flow"] = 2_000_000.0
         anomalies = AnomalyDetector.analyze_financial_anomalies(bad_current, self.clean_prior)
         flag_types = [a["type"] for a in anomalies]
         self.assertIn("CASH_FLOW_DIVERGENCE", flag_types)

@@ -3,7 +3,7 @@ import re
 from typing import Any, Dict, List, Optional
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
-from argus.edgar.client import EdgarClient
+from vettr.edgar.client import EdgarClient
 
 logger = logging.getLogger(__name__)
 
