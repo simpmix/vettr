@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARGUS // Autonomous Financial Forensics & Regulatory Intelligence Terminal</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="terminal-body">
+  <!-- Top Command Header -->
+  <header class="terminal-header">
+    <div class="header-left">
+      <div class="brand">
+        <span class="brand-logo">⬡</span>
+        <span class="brand-name">ARGUS</span>
+        <span class="brand-tag">FORENSICS TERMINAL v1.0</span>
+      </div>
+      <div class="system-pills">
+        <span class="status-pill status-live"><span class="pulse-dot"></span> SEC EDGAR : CONNECTED</span>
+        <span class="status-pill status-market"><span class="pulse-dot green"></span> MARKET FEED : LIVE</span>
+      </div>
+    </div>
+
+    <!-- Command & Ticker Search -->
+    <div class="header-center">
+      <form id="ticker-form" class="command-bar">
+        <span class="command-prompt">EXEC&gt;</span>
+        <input 
+          type="text" 
+          id="ticker-input" 
+          placeholder="SEARCH TICKER (e.g. NVDA, AAPL, TSLA)..." 
+          autocomplete="off" 
+          spellcheck="false"
+          value="NVDA"
+        />
+        <button type="submit" class="command-submit" title="Analyze Ticker">SCAN [↵]</button>
+      </form>
+    </div>
+
+    <div class="header-right">
+      <div class="quick-tickers">
+        <span class="quick-label">QUICK:</span>
+        <button class="ticker-pill" data-ticker="NVDA">NVDA</button>
+        <button class="ticker-pill" data-ticker="AAPL">AAPL</button>
+        <button class="ticker-pill" data-ticker="TSLA">TSLA</button>
+        <button class="ticker-pill" data-ticker="MSFT">MSFT</button>
+        <button class="ticker-pill" data-ticker="PLTR">PLTR</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="terminal-main">
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+      <div class="terminal-loader">
+        <div class="loader-hex">⬡</div>
+        <div class="loader-text">INTERROGATING SEC EDGAR &amp; FINANCIAL ARCHIVES...</div>
+        <div class="loader-bar"><div class="loader-fill"></div></div>
+      </div>
+    </div>
+
+    <!-- Company Overview Hero HUD -->
+    <section id="hero-hud" class="hero-hud">
+      <div class="hud-left">
+        <div class="ticker-title-row">
+          <h1 id="hud-ticker" class="hud-ticker">NVDA</h1>
+          <h2 id="hud-name" class="hud-name">NVIDIA Corporation</h2>
+          <span id="hud-cik" class="hud-cik">CIK: 0001045810</span>
+        </div>
+        <div class="hud-meta-row">
+          <span id="hud-sector" class="meta-item">Sector: Technology</span>
+          <span class="meta-sep">•</span>
+          <span id="hud-industry" class="meta-item">Industry: Semiconductors</span>
+        </div>
+      </div>
+
+      <div class="hud-center">
+        <div class="price-display">
+          <div id="hud-price" class="current-price">$214.13</div>
+          <div id="hud-change" class="price-change-pill negative">-1.43%</div>
+        </div>
+        <div class="valuation-multiples">
+          <div class="mult-item"><span class="mult-label">Mkt Cap:</span> <span id="hud-mcap" class="mult-val">$5.17T</span></div>
+          <div class="mult-item"><span class="mult-label">P/E (TTM):</span> <span id="hud-pe" class="mult-val">68.4</span></div>
+          <div class="mult-item"><span class="mult-label">52W Range:</span> <span id="hud-52w" class="mult-val">$75.6 - $218.4</span></div>
+        </div>
+      </div>
+
+      <div class="hud-right">
+        <div class="risk-meter-card">
+          <div class="risk-meter-header">
+            <span class="risk-label">COMPOSITE FORENSIC RISK</span>
+            <span id="risk-score-badge" class="risk-score-badge high">78 / 100</span>
+          </div>
+          <div class="risk-bar-container">
+            <div id="risk-bar-fill" class="risk-bar-fill high" style="width: 78%;"></div>
+          </div>
+          <div id="risk-verdict" class="risk-verdict">ELEVATED FORENSIC SCRUTINY</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Navigation Tabs -->
+    <nav class="terminal-tabs">
+      <button class="tab-btn active" data-tab="tab-forensics">
+        <span class="tab-index">[1]</span> FORENSIC RADAR &amp; ANOMALIES
+      </button>
+      <button class="tab-btn" data-tab="tab-diff">
+        <span class="tab-index">[2]</span> SEC FILING DELTA (10-K DIFF)
+      </button>
+      <button class="tab-btn" data-tab="tab-financials">
+        <span class="tab-index">[3]</span> AUDITED GAAP XBRL FINANCIALS
+      </button>
+      <button class="tab-btn" data-tab="tab-archive">
+        <span class="tab-index">[4]</span> OFFICIAL EDGAR ARCHIVE
+      </button>
+    </nav>
+
+    <!-- Tab Contents -->
+    <div class="tab-panels">
+      <!-- TAB 1: FORENSIC RADAR -->
+      <section id="tab-forensics" class="tab-panel active">
+        <!-- 3 Quantitative Forensic Cards Grid -->
+        <div class="models-grid">
+          <!-- Beneish M-Score Card -->
+          <div class="model-card">
+            <div class="model-header">
+              <span class="model-title">BENEISH M-SCORE</span>
+              <span class="model-subtitle">Earnings Manipulation Detector</span>
+            </div>
+            <div class="model-metric">
+              <span id="beneish-score" class="metric-value red">-1.246</span>
+              <span class="metric-threshold">Threshold: -1.78</span>
+            </div>
+            <div id="beneish-status" class="model-badge badge-red">PROBABLE MANIPULATION RISK</div>
+            <p class="model-desc">
+              8-factor probabilistic accounting model. Scores &gt; -1.78 indicate high likelihood of aggressive or synthetic earnings recognition.
+            </p>
+            <div id="beneish-vars" class="var-list">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Altman Z-Score Card -->
+          <div class="model-card">
+            <div class="model-header">
+              <span class="model-title">ALTMAN Z-SCORE</span>
+              <span class="model-subtitle">Insolvency &amp; Default Predictor</span>
+            </div>
+            <div class="model-metric">
+              <span id="altman-score" class="metric-value green">65.82</span>
+              <span class="metric-threshold">Safe &gt; 2.99 | Distress &lt; 1.81</span>
+            </div>
+            <div id="altman-status" class="model-badge badge-green">SAFE ZONE (LOW DEFAULT RISK)</div>
+            <p class="model-desc">
+              Measures liquidity, cumulative profitability, and balance sheet leverage to forecast default probability.
+            </p>
+            <div id="altman-vars" class="var-list">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Piotroski F-Score Card -->
+          <div class="model-card">
+            <div class="model-header">
+              <span class="model-title">PIOTROSKI F-SCORE</span>
+              <span class="model-subtitle">Financial Strength &amp; Momentum</span>
+            </div>
+            <div class="model-metric">
+              <span id="piotroski-score" class="metric-value yellow">5 / 9</span>
+              <span class="metric-threshold">High: 8-9 | Weak: 0-4</span>
+            </div>
+            <div id="piotroski-status" class="model-badge badge-yellow">STABLE / MODERATE (5-7)</div>
+            <p class="model-desc">
+              9-signal scorecard evaluating fundamental profitability, operational leverage, and margin health.
+            </p>
+            <div id="piotroski-vars" class="var-list">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Anomaly Feed & Sentiment Section -->
+        <div class="forensic-subgrid">
+          <!-- Detected Divergences Feed -->
+          <div class="panel-box">
+            <div class="panel-box-header">
+              <span class="panel-box-title">🚨 DETECTED BALANCE SHEET &amp; CASH FLOW ANOMALIES</span>
+              <span id="anomaly-count-pill" class="count-pill">2 ALERTS</span>
+            </div>
+            <div id="anomalies-container" class="anomalies-container">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Regulatory Triggers & Loughran-McDonald Tone -->
+          <div class="panel-box">
+            <div class="panel-box-header">
+              <span class="panel-box-title">🏛️ REGULATORY DISCLOSURE SCANNER &amp; SENTIMENT</span>
+            </div>
+            <div id="regulatory-container" class="regulatory-container">
+              <!-- Populated by JS -->
+            </div>
+            <div class="sentiment-box">
+              <div class="sentiment-title">Loughran-McDonald Financial Lexicon Tone:</div>
+              <div id="sentiment-tone" class="sentiment-badge">CAUTIONARY / DEFENSIVE</div>
+              <div class="sentiment-bars">
+                <div class="sent-item">
+                  <span>Uncertainty:</span>
+                  <div class="sent-bar"><div id="sent-unc" class="sent-fill yellow" style="width: 25%;"></div></div>
+                  <span id="sent-unc-val">0.97%</span>
+                </div>
+                <div class="sent-item">
+                  <span>Litigious:</span>
+                  <div class="sent-bar"><div id="sent-lit" class="sent-fill red" style="width: 15%;"></div></div>
+                  <span id="sent-lit-val">0.38%</span>
+                </div>
+                <div class="sent-item">
+                  <span>Negative:</span>
+                  <div class="sent-bar"><div id="sent-neg" class="sent-fill red" style="width: 20%;"></div></div>
+                  <span id="sent-neg-val">0.56%</span>
+                </div>
+                <div class="sent-item">
+                  <span>Positive:</span>
+                  <div class="sent-bar"><div id="sent-pos" class="sent-fill green" style="width: 10%;"></div></div>
+                  <span id="sent-pos-val">0.19%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: SEC FILING DIFF -->
+      <section id="tab-diff" class="tab-panel">
+        <div class="panel-box full-width">
+          <div class="panel-box-header">
+            <span class="panel-box-title">📄 YEAR-OVER-YEAR 10-K DISCLOSURE DELTA (ITEM 1A RISK FACTORS)</span>
+            <div class="diff-summary-stats">
+              <span id="diff-sim" class="stat-badge">Similarity: 0.0%</span>
+              <span id="diff-added-count" class="stat-badge green">+0 Added Sentences</span>
+              <span id="diff-removed-count" class="stat-badge red">-0 Removed Sentences</span>
+            </div>
+          </div>
+          <p class="diff-intro">
+            Corporate attorneys frequently bury emerging legal, supply-chain, or customer concentration risks by silently appending clauses to annual filings. Below are the key newly inserted and removed risk disclosures.
+          </p>
+          <div class="diff-columns">
+            <div class="diff-col added-col">
+              <h3 class="diff-col-title green">✨ SUBSTANTIVE NEW DISCLOSURES INSERTED</h3>
+              <div id="diff-added-list" class="diff-sentences-list">
+                <!-- JS populated -->
+              </div>
+            </div>
+            <div class="diff-col removed-col">
+              <h3 class="diff-col-title red">❌ DISCLOSURES REMOVED OR STRUCK OUT</h3>
+              <div id="diff-removed-list" class="diff-sentences-list">
+                <!-- JS populated -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: AUDITED XBRL FINANCIALS -->
+      <section id="tab-financials" class="tab-panel">
+        <div class="panel-box full-width">
+          <div class="panel-box-header">
+            <span class="panel-box-title">📊 AUDITED GAAP HISTORICAL FINANCIAL STATEMENT SERIES</span>
+            <span class="source-tag">SOURCE: US SEC XBRL COMPANY FACTS</span>
+          </div>
+          <div class="table-responsive">
+            <table id="financials-table" class="financials-table">
+              <thead>
+                <tr>
+                  <th>Financial Metric (USD)</th>
+                  <!-- Years dynamically injected -->
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Line items dynamically injected -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: OFFICIAL EDGAR ARCHIVE -->
+      <section id="tab-archive" class="tab-panel">
+        <div class="panel-box full-width">
+          <div class="panel-box-header">
+            <span class="panel-box-title">🏛️ DIRECT U.S. SEC EDGAR SUBMISSIONS FEED</span>
+            <span class="source-tag">REAL-TIME ACCESSION ARCHIVE</span>
+          </div>
+          <div class="table-responsive">
+            <table id="filings-table" class="filings-table">
+              <thead>
+                <tr>
+                  <th>Form Type</th>
+                  <th>Filing Date</th>
+                  <th>Report Date</th>
+                  <th>Accession Number</th>
+                  <th>Description</th>
+                  <th>EDGAR Official Link</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Rows injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="terminal-footer">
+    <div class="footer-left">
+      <span>ARGUS RESEARCH ENGINE • ZERO-COST OPEN FINANCIAL INTELLIGENCE</span>
+    </div>
+    <div class="footer-right">
+      <span>HOTKEY: PRESS <strong>/</strong> TO FOCUS COMMAND BAR</span>
+    </div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
