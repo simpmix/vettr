@@ -10,9 +10,14 @@ logger = logging.getLogger(__name__)
 
 PRESET_WATCHLISTS = {
     "mega_tech": ["NVDA", "AAPL", "MSFT", "AMZN", "GOOGL", "META", "TSLA"],
-    "high_growth": ["PLTR", "SNOW", "CRWD", "DDOG", "NET", "COIN"],
-    "semis": ["NVDA", "AMD", "INTC", "TSM", "AVGO", "QCOM", "ASML"],
-    "ev_clean": ["TSLA", "RIVN", "LCID", "NIO", "ENPH"]
+    "semis": ["NVDA", "TSM", "ASML", "AMD", "AVGO", "QCOM", "INTC", "MU", "ARM"],
+    "cloud_saas": ["CRM", "NOW", "PANW", "CRWD", "PLTR", "SNOW", "DDOG", "NET", "ZS", "MDB"],
+    "wall_street": ["JPM", "BAC", "GS", "MS", "WFC", "C", "BLK", "SCHW", "AXP"],
+    "healthcare": ["LLY", "NVO", "JNJ", "UNH", "PFE", "ABBV", "MRK", "TMO", "ABT"],
+    "consumer_retail": ["WMT", "COST", "HD", "MCD", "NKE", "SBUX", "TGT", "LULU", "PG"],
+    "defense_energy": ["XOM", "CVX", "LMT", "RTX", "BA", "GD", "COP", "CAT"],
+    "high_growth": ["PLTR", "SNOW", "CRWD", "DDOG", "NET", "COIN", "MSTR", "SOFI"],
+    "ev_clean": ["TSLA", "RIVN", "LCID", "NIO", "ENPH", "FSLR"]
 }
 
 class VettrScreener:

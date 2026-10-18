@@ -90,6 +90,19 @@
     </div>
   </header>
 
+  <!-- Live Stock Exchange Ticker Tape -->
+  <div class="exchange-ticker-bar">
+    <div class="ticker-bar-status">
+      <span class="ticker-live-dot"></span>
+      <span id="market-status-badge">EXCHANGES LIVE</span>
+    </div>
+    <div class="ticker-tape-wrapper">
+      <div id="exchange-tape-track" class="exchange-tape-track">
+        <!-- Rendered dynamically via /api/market/pulse -->
+      </div>
+    </div>
+  </div>
+
   <!-- Main Workstation -->
   <main class="terminal-main">
     <!-- Loading Curtain -->
@@ -524,6 +537,11 @@
             <div class="screener-switcher">
               <button class="preset-btn active" data-preset="mega_tech">Mega Tech</button>
               <button class="preset-btn" data-preset="semis">Semiconductors</button>
+              <button class="preset-btn" data-preset="cloud_saas">Cloud &amp; SaaS</button>
+              <button class="preset-btn" data-preset="wall_street">Wall Street</button>
+              <button class="preset-btn" data-preset="healthcare">Healthcare</button>
+              <button class="preset-btn" data-preset="consumer_retail">Retail &amp; Consumer</button>
+              <button class="preset-btn" data-preset="defense_energy">Defense &amp; Energy</button>
               <button class="preset-btn" data-preset="high_growth">High Growth</button>
               <button class="preset-btn" data-preset="ev_clean">EV &amp; CleanTech</button>
             </div>

@@ -840,6 +840,65 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Live Exchange Telemetry Ticker Tape
+  async function fetchExchangePulse() {
+    const track = document.getElementById("exchange-tape-track");
+    const statusBadge = document.getElementById("market-status-badge");
+    if (!track) return;
+
+    try {
+      const resp = await fetch("/api/market/pulse");
+      if (!resp.ok) return;
+      const data = await resp.json();
+
+      if (statusBadge && data.market_status) {
+        statusBadge.textContent = data.market_status;
+      }
+
+      track.innerHTML = "";
+
+      // 1. Render Indices
+      (data.indices || []).forEach(idx => {
+        const isPos = idx.change >= 0;
+        const div = document.createElement("div");
+        div.className = "tape-item";
+        div.innerHTML = `
+          <span class="tape-sym" style="color: var(--color-cyan);">${idx.symbol}</span>
+          <span class="tape-price num">$${idx.price.toFixed(2)}</span>
+          <span class="tape-chg num ${isPos ? 'pos' : 'neg'}">${isPos ? '+' : ''}${idx.change_pct.toFixed(2)}%</span>
+          <span class="tape-sep">•</span>
+        `;
+        track.appendChild(div);
+      });
+
+      // 2. Render Active Leaders (Clickable to switch ticker!)
+      (data.leaders || []).forEach(lead => {
+        const isPos = lead.change >= 0;
+        const div = document.createElement("div");
+        div.className = "tape-item";
+        div.title = `Click to analyze ${lead.symbol}`;
+        div.innerHTML = `
+          <span class="tape-sym">${lead.symbol}</span>
+          <span class="tape-price num">$${lead.price.toFixed(2)}</span>
+          <span class="tape-chg num ${isPos ? 'pos' : 'neg'}">${isPos ? '+' : ''}${lead.change_pct.toFixed(2)}%</span>
+          <span class="tape-sep">•</span>
+        `;
+        div.addEventListener("click", () => {
+          tickerInput.value = lead.symbol;
+          runAnalysis(lead.symbol);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        track.appendChild(div);
+      });
+    } catch (err) {
+      console.warn("Exchange pulse poll error:", err);
+    }
+  }
+
+  // Initial fetch and continuous 15-second live exchange poll
+  fetchExchangePulse();
+  setInterval(fetchExchangePulse, 15000);
+
   // Initial load
   runAnalysis("NVDA");
 });

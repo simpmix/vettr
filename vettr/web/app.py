@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from vettr.engine import VettrEngine
 from vettr.market.provider import MarketDataProvider
+from vettr.market.exchange_feed import ExchangePulseTracker
 from vettr.screener import VettrScreener, PRESET_WATCHLISTS
 from vettr.data.tickers import search_securities
 from vettr.config import SERVER_HOST, SERVER_PORT
@@ -42,6 +43,11 @@ def serve_index():
     if index_file.exists():
         return FileResponse(index_file)
     return {"message": "VETTR Terminal API online. Static frontend not found."}
+
+@app.get("/api/market/pulse")
+def get_market_pulse():
+    """Live exchange telemetry: major indices and high-volume leaders."""
+    return ExchangePulseTracker.get_exchange_pulse()
 
 @app.get("/api/search")
 def search_tickers(q: str = ""):
