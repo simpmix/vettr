@@ -127,10 +127,75 @@ def print_cli_report(data: dict):
         )
         console.print(Panel(diff_text, title="YoY Filing Delta (Item 1A Risk Factors)", border_style="magenta"))
 
+    # 7. Reverse DCF Valuation & Executive Synthesis
+    val = data.get("valuation_model", {})
+    if val:
+        val_text = (
+            f"Implied 10-Yr FCF CAGR: [bold yellow]{val.get('implied_growth_10yr_pct')}%[/bold yellow] | "
+            f"Est. FCF: [cyan]${val.get('fcf_estimate'):,.0f}[/cyan] | "
+            f"FCF Yield: [white]{val.get('fcf_yield_pct')}%[/white] | "
+            f"Valuation: [bold]{val.get('valuation_verdict')}[/bold]"
+        )
+        console.print(Panel(val_text, title="Reverse DCF Implied Expectations", border_style="cyan"))
+
+    synthesis = data.get("executive_synthesis")
+    if synthesis:
+        console.print(Panel(f"[italic]{synthesis}[/italic]", title="[bold white]Executive Forensic Auditor Synthesis[/bold white]", border_style="white"))
+
+def run_cli_compare(tickers_str: str):
+    tickers = [t.strip().upper() for t in tickers_str.split(",") if t.strip()][:5]
+    console.print(f"[bold cyan]Interrogating SEC EDGAR filings for peer group: {', '.join(tickers)}...[/bold cyan]\n")
+
+    engine = VettrEngine()
+    comp_table = Table(title="[bold yellow]VETTR PEER FORENSIC COMPARISON[/bold yellow]", box=box.ROUNDED, expand=True)
+    comp_table.add_column("Ticker", style="bold white", width=8)
+    comp_table.add_column("Name", width=22)
+    comp_table.add_column("Price", style="cyan", justify="right", width=10)
+    comp_table.add_column("Risk Score", justify="center", width=12)
+    comp_table.add_column("Beneish M", justify="center", width=12)
+    comp_table.add_column("Altman Z", justify="center", width=10)
+    comp_table.add_column("Piotroski", justify="center", width=10)
+    comp_table.add_column("Implied Growth", justify="right", width=14)
+
+    for t in tickers:
+        try:
+            res = engine.analyze_ticker(t)
+            mkt = res.get("market_data", {})
+            f = res.get("forensics", {})
+            risk = res.get("risk_score", 0)
+            b = f.get("beneish_m_score") or {}
+            z = f.get("altman_z_score") or {}
+            pi = f.get("piotroski_f_score") or {}
+            val = res.get("valuation_model") or {}
+
+            r_color = "green" if risk < 30 else ("yellow" if risk < 60 else "red")
+            b_color = "red" if b.get("is_manipulator") else "green"
+
+            comp_table.add_row(
+                t,
+                mkt.get("name", t)[:22],
+                f"${mkt.get('current_price', 0):.2f}",
+                f"[{r_color}]{risk} / 100[/{r_color}]",
+                f"[{b_color}]{b.get('score', 'N/A')}[/{b_color}]",
+                str(z.get("score", "N/A")),
+                f"{pi.get('score', 'N/A')}/9" if pi.get('score') is not None else "N/A",
+                f"{val.get('implied_growth_10yr_pct', 'N/A')}%"
+            )
+        except Exception as e:
+            comp_table.add_row(t, f"Error: {e}", "-", "-", "-", "-", "-", "-")
+
+    console.print(comp_table)
+
 def main():
     parser = argparse.ArgumentParser(description="VETTR Financial Forensics Terminal")
     parser.add_argument("ticker", nargs="?", default="NVDA", help="Stock ticker (e.g. NVDA, AAPL, TSLA)")
+    parser.add_argument("--compare", help="Compare multiple tickers (e.g. --compare NVDA,AMD,INTC)")
+    parser.add_argument("--audit", action="store_true", help="Print deep accounting forensic metrics (Sloan, DSO, DIO)")
     args = parser.parse_args()
+
+    if args.compare:
+        run_cli_compare(args.compare)
+        return
 
     console.print(f"[bold cyan]Querying SEC EDGAR & Market feeds for {args.ticker.upper()}...[/bold cyan]")
     engine = VettrEngine()
@@ -141,6 +206,41 @@ def main():
         sys.exit(1)
 
     print_cli_report(result)
+
+    if args.audit:
+        gm = result.get("growth_metrics", {})
+        acc_table = Table(title="[bold yellow]DEEP ACCOUNTING FORENSICS & WORKING CAPITAL[/bold yellow]", box=box.ROUNDED)
+        acc_table.add_column("Metric", style="bold white", width=30)
+        acc_table.add_column("Value", style="cyan", width=15)
+        acc_table.add_column("Benchmark / Interpretation")
+
+        sloan_pct = gm.get("sloan_accrual_pct")
+        acc_table.add_row(
+            "Sloan Accrual Ratio",
+            f"{sloan_pct}%" if sloan_pct is not None else "N/A",
+            gm.get("sloan_status", "Normal")
+        )
+        acc_table.add_row(
+            "Days Sales Outstanding (DSO)",
+            f"{gm.get('dso_days')} days" if gm.get('dso_days') is not None else "N/A",
+            "Speed of receivables cash collection"
+        )
+        acc_table.add_row(
+            "Days Inventory Outstanding (DIO)",
+            f"{gm.get('dio_days')} days" if gm.get('dio_days') is not None else "N/A",
+            "Inventory turnover & obsolescence risk"
+        )
+        acc_table.add_row(
+            "Cash Conversion % (CFO / NI)",
+            f"{gm.get('cash_conversion_pct')}%" if gm.get('cash_conversion_pct') is not None else "N/A",
+            "Earnings backed by physical cash flow (>100% ideal)"
+        )
+        acc_table.add_row(
+            "Return on Invested Capital (ROIC)",
+            f"{gm.get('roic_pct')}%" if gm.get('roic_pct') is not None else "N/A",
+            "True economic engine return after capital charge"
+        )
+        console.print(acc_table)
 
 if __name__ == "__main__":
     main()

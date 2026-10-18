@@ -265,3 +265,82 @@ class ForensicMetrics:
             "rating": rating,
             "signals": signals
         }
+
+    @classmethod
+    def calculate_accrual_matrix(cls, current: Dict[str, Any], prior: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Calculates Sloan Accrual Anomaly (Sloan 1996) and Working Capital Forensics:
+        - Sloan Accrual Ratio = (Net Income - Operating Cash Flow) / Total Assets
+        - Days Sales Outstanding (DSO) = (Accounts Receivable / Revenue) * 365
+        - Days Inventory Outstanding (DIO) = (Inventory / COGS) * 365
+        - Cash Conversion Ratio = Operating Cash Flow / Net Income
+        """
+        assets_t = float(current.get("total_assets") or 1.0)
+        ni_t = float(current.get("net_income") or 0.0)
+        cfo_t = float(current.get("operating_cash_flow") or 0.0)
+        rev_t = float(current.get("revenue") or 1.0)
+        ar_t = float(current.get("accounts_receivable") or 0.0)
+        inv_t = float(current.get("inventory") or 0.0)
+        cogs_t = float(current.get("cogs") or (rev_t * 0.6 if rev_t > 0 else 1.0))
+
+        # 1. Sloan Accrual Anomaly
+        sloan_accrual = (ni_t - cfo_t) / assets_t if assets_t > 0 else 0.0
+        sloan_pct = round(sloan_accrual * 100, 2)
+        if sloan_pct > 10.0:
+            sloan_status = "CRITICAL ACCRUAL ANOMALY (>10%)"
+            sloan_risk = "HIGH"
+        elif sloan_pct > 5.0:
+            sloan_status = "ELEVATED NON-CASH EARNINGS"
+            sloan_risk = "MEDIUM"
+        elif sloan_pct < -10.0:
+            sloan_status = "CONSERVATIVE / HIGH CASH FLOW"
+            sloan_risk = "LOW"
+        else:
+            sloan_status = "NORMAL CASH-BACKED EARNINGS"
+            sloan_risk = "LOW"
+
+        # 2. DSO & DIO
+        dso_t = round((ar_t / rev_t * 365), 1) if rev_t > 0 else 0.0
+        dio_t = round((inv_t / cogs_t * 365), 1) if cogs_t > 0 else 0.0
+
+        dso_prior = None
+        dso_delta = None
+        dio_prior = None
+        dio_delta = None
+        asset_growth = None
+
+        if prior:
+            assets_t_1 = float(prior.get("total_assets") or 1.0)
+            rev_t_1 = float(prior.get("revenue") or 1.0)
+            ar_t_1 = float(prior.get("accounts_receivable") or 0.0)
+            inv_t_1 = float(prior.get("inventory") or 0.0)
+            cogs_t_1 = float(prior.get("cogs") or (rev_t_1 * 0.6 if rev_t_1 > 0 else 1.0))
+
+            if rev_t_1 > 0:
+                dso_prior = round((ar_t_1 / rev_t_1 * 365), 1)
+                dso_delta = round(dso_t - dso_prior, 1)
+
+            if cogs_t_1 > 0:
+                dio_prior = round((inv_t_1 / cogs_t_1 * 365), 1)
+                dio_delta = round(dio_t - dio_prior, 1)
+
+            if assets_t_1 > 0:
+                asset_growth = round(((assets_t - assets_t_1) / assets_t_1 * 100), 1)
+
+        # 3. Cash Conversion Ratio
+        cash_conversion_ratio = round((cfo_t / ni_t * 100), 1) if ni_t > 0 else (0.0 if cfo_t <= 0 else 999.0)
+
+        return {
+            "sloan_accrual_ratio": sloan_accrual,
+            "sloan_accrual_pct": sloan_pct,
+            "sloan_status": sloan_status,
+            "sloan_risk": sloan_risk,
+            "dso_days": dso_t,
+            "dso_prior_days": dso_prior,
+            "dso_delta_days": dso_delta,
+            "dio_days": dio_t,
+            "dio_prior_days": dio_prior,
+            "dio_delta_days": dio_delta,
+            "cash_conversion_pct": cash_conversion_ratio,
+            "asset_growth_pct": asset_growth
+        }

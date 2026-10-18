@@ -33,6 +33,11 @@ class DossierGenerator:
         md.append("## 1. EXECUTIVE FORENSIC VERDICT\n")
         verdict = "ELEVATED RISK / ACCOUNTING SCRUTINY REQUIRED" if risk_score >= 60 else ("MODERATE CONCERN" if risk_score >= 30 else "AUDITED / STABLE FUNDAMENTALS")
         md.append(f"> **COMPOSITE FORENSIC RISK SCORE: `{risk_score} / 100` — [{verdict}]**\n")
+        
+        synthesis = report.get("executive_synthesis")
+        if synthesis:
+            md.append(f"> *{synthesis}*\n")
+
         md.append(f"- **Current Market Price:** ${mkt.get('current_price', 0):,.2f} ({mkt.get('change_pct', 0):+.2f}%)")
         md.append(f"- **Market Capitalization:** ${mkt.get('market_cap', 0):,}")
         md.append(f"- **Sector / Industry:** {mkt.get('sector')} / {mkt.get('industry')}")
@@ -53,8 +58,27 @@ class DossierGenerator:
                 md.append(f"- **{k}:** `{v}`")
             md.append("")
 
-        # 3. Detected Balance Sheet & Accrual Anomalies
-        md.append("## 3. DETECTED ANOMALIES & DIVERGENCES\n")
+        # 3. Accrual Matrix & Working Capital
+        gm = report.get("growth_metrics", {})
+        if gm:
+            md.append("## 3. ACCRUAL QUALITY & WORKING CAPITAL FORENSICS\n")
+            md.append(f"- **Sloan Accrual Ratio:** `{gm.get('sloan_accrual_pct', 'N/A')}%` ({gm.get('sloan_status', 'Normal')})")
+            md.append(f"- **Days Sales Outstanding (DSO):** `{gm.get('dso_days', 'N/A')} days`")
+            md.append(f"- **Days Inventory Outstanding (DIO):** `{gm.get('dio_days', 'N/A')} days`")
+            md.append(f"- **Cash Conversion (CFO / NI):** `{gm.get('cash_conversion_pct', 'N/A')}%`")
+            md.append(f"- **Return on Invested Capital (ROIC):** `{gm.get('roic_pct', 'N/A')}%`\n")
+
+        # 4. Reverse DCF Valuation
+        val = report.get("valuation_model", {})
+        if val:
+            md.append("## 4. REVERSE DISCOUNTED CASH FLOW (DCF) IMPLIED VALUATION\n")
+            md.append(f"- **Implied 10-Year Annual FCF Growth Rate:** `{val.get('implied_growth_10yr_pct')}%`")
+            md.append(f"- **Estimated FCF (TTM):** `${val.get('fcf_estimate', 0):,.0f}`")
+            md.append(f"- **FCF Yield on Market Cap:** `{val.get('fcf_yield_pct')}%`")
+            md.append(f"- **Valuation Assessment:** **{val.get('valuation_verdict')}**\n")
+
+        # 5. Detected Balance Sheet & Accrual Anomalies
+        md.append("## 5. DETECTED ANOMALIES & DIVERGENCES\n")
         if anomalies:
             for a in anomalies:
                 md.append(f"### 🚨 [{a.get('severity')}] {a.get('title')}")
@@ -64,8 +88,8 @@ class DossierGenerator:
         else:
             md.append("✓ *No severe balance sheet or operating cash flow divergences detected.*\n")
 
-        # 4. SEC Filing Regulatory Scans
-        md.append("## 4. REGULATORY & AUDIT TEXT SURFACING (10-K / 10-Q)\n")
+        # 6. SEC Filing Regulatory Scans
+        md.append("## 6. REGULATORY & AUDIT TEXT SURFACING (10-K / 10-Q)\n")
         if reg_flags:
             for rf in reg_flags:
                 md.append(f"- **{rf.get('title')}:**")
@@ -73,8 +97,8 @@ class DossierGenerator:
         else:
             md.append("✓ *No high-risk litigation or internal control deficiency triggers found in latest section scans.*\n")
 
-        # 5. Loughran-McDonald Sentiment
-        md.append("## 5. LOUGHRAN-MCDONALD FINANCIAL TONE & HEDGING\n")
+        # 7. Loughran-McDonald Sentiment
+        md.append("## 7. LOUGHRAN-MCDONALD FINANCIAL TONE & HEDGING\n")
         if sentiment:
             md.append(f"- **Dominant Tone:** `{sentiment.get('tone')}`")
             md.append(f"- **Uncertainty Density:** `{sentiment.get('uncertainty_pct')}%`")
@@ -82,8 +106,8 @@ class DossierGenerator:
             md.append(f"- **Negative Tone:** `{sentiment.get('negative_pct')}%`")
             md.append(f"- **Positive Tone:** `{sentiment.get('positive_pct')}%` (Total analyzed words: {sentiment.get('total_words', 0):,})\n")
 
-        # 6. Year-over-Year Filing Delta
-        md.append("## 6. YEAR-OVER-YEAR 10-K DISCLOSURE DELTA (ITEM 1A RISK FACTORS)\n")
+        # 8. Year-over-Year Filing Delta
+        md.append("## 8. YEAR-OVER-YEAR 10-K DISCLOSURE DELTA (ITEM 1A RISK FACTORS)\n")
         if diff:
             md.append(f"- **Textual Similarity Ratio:** `{diff.get('similarity_pct')}%`")
             md.append(f"- **Substantive Additions:** `+{diff.get('added_count')}` sentences")

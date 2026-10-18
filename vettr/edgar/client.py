@@ -125,6 +125,22 @@ class EdgarClient:
         report_dates = recent["reportDate"]
         primary_docs = recent["primaryDocument"]
         doc_descriptions = recent.get("primaryDocDescription", [""] * len(forms))
+        items_list = recent.get("items", [""] * len(forms))
+
+        ITEM_8K_MAP = {
+            "1.01": "Material Definitive Agreement",
+            "1.02": "Termination of Material Agreement",
+            "1.03": "Bankruptcy / Receivership",
+            "2.02": "Results of Operations / Earnings",
+            "2.04": "Acceleration of Direct Financial Obligation",
+            "3.01": "Delisting Notice / Failure to Satisfy Rule",
+            "4.01": "Changes in Certifying Auditor",
+            "4.02": "Non-Reliance on Prior Financials (Restatement)",
+            "5.01": "Change in Control of Company",
+            "5.02": "Departure of Directors / Principal Officers",
+            "7.01": "Regulation FD Disclosure",
+            "8.01": "Other Material Events"
+        }
 
         results = []
         for i in range(len(forms)):
@@ -142,13 +158,20 @@ class EdgarClient:
                 filename=primary_docs[i]
             )
 
+            raw_item = items_list[i] if i < len(items_list) else ""
+            item_desc = ""
+            if form == "8-K" and raw_item:
+                sub_items = [s.strip() for s in str(raw_item).split(",") if s.strip()]
+                item_desc = "; ".join([f"Item {code}: {ITEM_8K_MAP.get(code, 'Material Event')}" for code in sub_items])
+
             results.append({
                 "form": form,
                 "filing_date": filing_dates[i],
                 "report_date": report_dates[i] if i < len(report_dates) else filing_dates[i],
                 "accession_number": acc_raw,
                 "primary_document": primary_docs[i],
-                "description": doc_descriptions[i] if i < len(doc_descriptions) else "",
+                "description": item_desc or (doc_descriptions[i] if i < len(doc_descriptions) else ""),
+                "items": raw_item,
                 "url": url
             })
 

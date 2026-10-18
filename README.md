@@ -49,14 +49,29 @@ Institutional financial platforms like Bloomberg, FactSet, and AlphaSense charge
 7. **SEC Form 4 Insider Radar**
    * Real-time monitoring of C-suite (CEO, CFO, Director) open-market transactions and cluster sales.
 
-8. **Reverse DCF Implied Growth Model**
-   * Calculates the exact annual Free Cash Flow growth rate required by the current market price over the next 10 years.
+8. **Sloan Accrual Anomaly & Working Capital Forensics (Richard Sloan, 1996)**
+   * Detects aggressive non-cash earnings decoupling:
+     - Sloan Accrual Ratio = (Net Income - Operating Cash Flow) / Total Assets
+     - Days Sales Outstanding (DSO) & YoY expansion (channel-stuffing flag)
+     - Days Inventory Outstanding (DIO) (inventory bloat & obsolescence alert)
+     - Cash Conversion Ratio (Operating Cash Flow / Net Income)
 
-9. **Head-to-Head Peer Comparison & Screener**
-   * Side-by-side benchmarking of multiple equities with ranked risk scoring.
+9. **Form 8-K Real-Time Material Event Registry**
+   * Item code extraction for urgent disclosures:
+     - Item 5.02: Departure of Principal Officers / Directors
+     - Item 4.02: Non-Reliance on Previously Issued Financial Statements (Restatements)
+     - Item 4.01: Changes in Certifying Accountants
+     - Item 2.02: Results of Operations / Unscheduled Earnings
 
-10. **Dual Institutional Export**
-    * 1-Click generation of publication-ready Due Diligence Memorandums in Markdown and structured GAAP financial data in CSV/JSON.
+10. **Interactive Reverse DCF & Sensitivity Matrix**
+    * Inverts standard DCF to determine what annual Free Cash Flow expansion the stock's current price requires.
+    * Interactive 3x3 Sensitivity Matrix across variable WACC Discount Rates (8%, 10%, 12%) and Terminal Growth (2%, 3%, 4%).
+
+11. **Head-to-Head Peer Comparison & Screener**
+    * Side-by-side benchmarking of multiple equities with ranked risk scoring.
+
+12. **Institutional Dual Export & Print Memorandums**
+    * 1-Click generation of publication-ready Due Diligence Memorandums in Markdown, structured GAAP financial data in CSV/JSON, and clean PDF report formatting.
 
 ---
 
@@ -66,15 +81,19 @@ Institutional financial platforms like Bloomberg, FactSet, and AlphaSense charge
 ```bash
 python run.py
 ```
-Opens the live Swiss-brutalist workstation at:
+Opens the live institutional workstation at:
 👉 **`http://localhost:8000`**
 
 ### Command-Line Interface (Quants & Terminal Users)
 ```bash
-# Scan a company
+# Standard forensic scan
 python -m vettr.cli NVDA
-python -m vettr.cli AAPL
-python -m vettr.cli TSLA
+
+# Deep accounting forensics & working capital audit (Sloan, DSO, DIO, Reverse DCF)
+python -m vettr.cli NVDA --audit
+
+# Side-by-side peer comparison
+python -m vettr.cli --compare NVDA,AMD,INTC,TSM
 
 # Run batch screener across watchlists
 python -m vettr.screener --list mega_tech

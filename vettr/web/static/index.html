@@ -13,15 +13,31 @@
   <!-- Minimalist Header with Sleek Custom VETTR Logo -->
   <header class="terminal-header">
     <div class="header-left">
-      <div class="brand">
-        <!-- Sleek Custom VETTR Geometric Monogram SVG -->
-        <svg class="brand-logo-svg" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3 4L14 24L25 4H19.5L14 15L8.5 4H3Z" fill="#FFFFFF"/>
-          <path d="M10 4L14 11.5L18 4H20.5L14 16.5L7.5 4H10Z" fill="#71717A"/>
+      <div class="brand" onclick="window.location.reload()">
+        <!-- Sleek Custom VETTR Faceted Monogram SVG Mark -->
+        <svg class="brand-logo-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="vGrad1" x1="4" y1="4" x2="16" y2="28" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#94A3B8"/>
+              <stop offset="100%" stop-color="#475569"/>
+            </linearGradient>
+            <linearGradient id="vGrad2" x1="16" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#FFFFFF"/>
+              <stop offset="100%" stop-color="#CBD5E1"/>
+            </linearGradient>
+            <linearGradient id="vGradCore" x1="16" y1="10" x2="16" y2="25" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#38BDF8"/>
+              <stop offset="100%" stop-color="#0EA5E9"/>
+            </linearGradient>
+          </defs>
+          <path d="M5 6L16 27L16 17L9 6H5Z" fill="url(#vGrad1)"/>
+          <path d="M27 6L16 27L16 17L23 6H27Z" fill="url(#vGrad2)"/>
+          <path d="M16 10L20.5 17L16 24L11.5 17L16 10Z" fill="url(#vGradCore)" opacity="0.95"/>
+          <path d="M11 6L16 13L21 6H17.5L16 8.5L14.5 6H11Z" fill="#FFFFFF" opacity="0.9"/>
         </svg>
         <div class="brand-text">
           <span class="brand-name">VETTR</span>
-          <span class="brand-sub">SEC EDGAR FORENSICS TERMINAL</span>
+          <span class="brand-sub">INSTITUTIONAL FORENSICS TERMINAL</span>
         </div>
       </div>
       <div class="system-status">
@@ -31,7 +47,7 @@
         </div>
         <div class="status-indicator">
           <span class="status-dot"></span>
-          <span>MARKET: LIVE</span>
+          <span>FEED: LIVE</span>
         </div>
       </div>
     </div>
@@ -43,7 +59,7 @@
         <input 
           type="text" 
           id="ticker-input" 
-          placeholder="ENTER TICKER OR COMPANY (e.g. NVDA, AAPL, TSLA)..." 
+          placeholder="ENTER TICKER OR COMPANY (e.g. NVDA, AAPL, MSFT, TSLA)..." 
           autocomplete="off" 
           spellcheck="false"
           value="NVDA"
@@ -58,6 +74,9 @@
     <div class="header-right">
       <button id="btn-copy-brief" class="btn-action" title="Copy Executive Brief to Clipboard">
         COPY BRIEF
+      </button>
+      <button id="btn-print-report" class="btn-action" title="Print or Save PDF Executive Report">
+        PRINT / PDF
       </button>
       <button id="btn-export-csv" class="btn-action" title="Export 5-Year Financials to CSV">
         CSV EXPORT
@@ -114,15 +133,49 @@
         <div class="hud-cell risk-meter-cell">
           <span class="cell-label">Composite Risk Rating</span>
           <div class="risk-summary-row">
-            <span id="risk-score-badge" class="risk-value high">78 / 100</span>
+            <span id="risk-score-badge" class="risk-value high">58 / 100</span>
           </div>
           <div class="risk-bar">
-            <div id="risk-bar-fill" class="risk-bar-fill high" style="width: 78%;"></div>
+            <div id="risk-bar-fill" class="risk-bar-fill high" style="width: 58%;"></div>
           </div>
           <span id="risk-verdict" class="risk-verdict-text">ELEVATED FORENSIC SCRUTINY</span>
         </div>
       </div>
+
+      <!-- Secondary Quick Metrics Strip -->
+      <div class="hud-secondary-strip">
+        <div class="hero-stat-item">
+          <span class="hero-stat-label">3-Yr Rev CAGR</span>
+          <span id="hud-rev-cagr" class="hero-stat-val num">--</span>
+        </div>
+        <div class="hero-stat-item">
+          <span class="hero-stat-label">3-Yr Net Inc CAGR</span>
+          <span id="hud-ni-cagr" class="hero-stat-val num">--</span>
+        </div>
+        <div class="hero-stat-item">
+          <span class="hero-stat-label">Cash Conversion (CFO/NI)</span>
+          <span id="hud-cash-conv" class="hero-stat-val num">--</span>
+        </div>
+        <div class="hero-stat-item">
+          <span class="hero-stat-label">ROIC (Invested Capital)</span>
+          <span id="hud-roic" class="hero-stat-val num">--</span>
+        </div>
+        <div class="hero-stat-item">
+          <span class="hero-stat-label">Sloan Accrual Ratio</span>
+          <span id="hud-sloan" class="hero-stat-val num">--</span>
+        </div>
+        <div class="hero-stat-item">
+          <span class="hero-stat-label">Days Sales Out (DSO)</span>
+          <span id="hud-dso" class="hero-stat-val num">--</span>
+        </div>
+      </div>
     </section>
+
+    <!-- Executive Forensic Synthesis Insight Bar -->
+    <div id="executive-synthesis-bar" class="executive-synthesis-bar">
+      <span class="synthesis-badge">AUDITOR SYNTHESIS</span>
+      <span id="executive-synthesis-text" class="synthesis-text">Synthesizing multi-variable forensic telemetry...</span>
+    </div>
 
     <!-- Navigation Tabs -->
     <nav class="terminal-tabs">
@@ -132,10 +185,11 @@
       <button class="tab-btn" data-tab="tab-diff">04. 10-K DISCLOSURE DELTA</button>
       <button class="tab-btn" data-tab="tab-dupont">05. DUPONT ROE ENGINE</button>
       <button class="tab-btn" data-tab="tab-insiders">06. FORM 4 INSIDER RADAR</button>
-      <button class="tab-btn" data-tab="tab-compare">07. PEER COMPARISON</button>
-      <button class="tab-btn" data-tab="tab-screener">08. BATCH SCREENER</button>
-      <button class="tab-btn" data-tab="tab-financials">09. AUDITED GAAP XBRL</button>
-      <button class="tab-btn" data-tab="tab-archive">10. SEC ARCHIVE</button>
+      <button class="tab-btn" data-tab="tab-events-8k">07. 8-K MATERIAL EVENTS</button>
+      <button class="tab-btn" data-tab="tab-compare">08. PEER COMPARISON</button>
+      <button class="tab-btn" data-tab="tab-screener">09. BATCH SCREENER</button>
+      <button class="tab-btn" data-tab="tab-financials">10. AUDITED GAAP XBRL</button>
+      <button class="tab-btn" data-tab="tab-archive">11. SEC ARCHIVE</button>
     </nav>
 
     <!-- Content Sections -->
@@ -223,26 +277,26 @@
             <div class="sentiment-grid">
               <div class="sent-card">
                 <span class="sent-card-label">Uncertainty</span>
-                <span id="sent-unc-val" class="sent-card-val" style="color: var(--signal-amber);">0.97%</span>
+                <span id="sent-unc-val" class="sent-card-val" style="color: var(--color-amber);">0.97%</span>
               </div>
               <div class="sent-card">
                 <span class="sent-card-label">Litigious</span>
-                <span id="sent-lit-val" class="sent-card-val" style="color: var(--signal-red);">0.38%</span>
+                <span id="sent-lit-val" class="sent-card-val" style="color: var(--color-red);">0.38%</span>
               </div>
               <div class="sent-card">
                 <span class="sent-card-label">Negative Tone</span>
-                <span id="sent-neg-val" class="sent-card-val" style="color: var(--signal-red);">0.56%</span>
+                <span id="sent-neg-val" class="sent-card-val" style="color: var(--color-red);">0.56%</span>
               </div>
               <div class="sent-card">
                 <span class="sent-card-label">Positive Tone</span>
-                <span id="sent-pos-val" class="sent-card-val" style="color: var(--signal-green);">0.19%</span>
+                <span id="sent-pos-val" class="sent-card-val" style="color: var(--color-green);">0.19%</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- 03. REVERSE DCF VALUATION -->
+      <!-- 03. REVERSE DCF VALUATION & SENSITIVITY TOOL -->
       <section id="tab-valuation" class="tab-panel">
         <div class="section-box full">
           <div class="section-header">
@@ -250,29 +304,80 @@
             <span id="valuation-verdict-badge" class="pill-badge">PRICED FOR AGGRESSIVE GROWTH</span>
           </div>
           <p class="card-methodology" style="margin-bottom: 20px;">
-            Instead of predicting the future, Reverse DCF calculates the exact annual Free Cash Flow growth rate the current stock price requires over the next 10 years at a 10% discount rate and 3% terminal growth rate.
+            Reverse DCF calculates the exact annual Free Cash Flow growth rate the current market capitalization requires over the next 10 years at a specified discount rate and terminal growth rate.
           </p>
+
+          <!-- Interactive Scenario Controls -->
+          <div class="dcf-controls-bar">
+            <div class="dcf-control-group">
+              <span class="dcf-label">Discount Rate (WACC):</span>
+              <button class="scenario-pill-btn" data-rate="8.0">8.0%</button>
+              <button class="scenario-pill-btn active" data-rate="10.0">10.0% (Base)</button>
+              <button class="scenario-pill-btn" data-rate="12.0">12.0%</button>
+            </div>
+            <div class="dcf-control-group">
+              <span class="dcf-label">Terminal Growth:</span>
+              <button class="scenario-pill-btn" data-term="2.0">2.0%</button>
+              <button class="scenario-pill-btn active" data-term="3.0">3.0% (Base)</button>
+              <button class="scenario-pill-btn" data-term="4.0">4.0%</button>
+            </div>
+          </div>
+
           <div class="valuation-grid">
             <div class="val-card">
               <div class="val-card-label">Implied 10-Year Annual Growth</div>
-              <div id="val-implied-growth" class="val-card-num num">24.5%</div>
+              <div id="val-implied-growth" class="val-card-num num">13.5%</div>
               <div class="val-card-sub">Required annual FCF expansion</div>
             </div>
             <div class="val-card">
               <div class="val-card-label">Estimated Free Cash Flow (TTM)</div>
-              <div id="val-fcf-est" class="val-card-num num">$52.4B</div>
+              <div id="val-fcf-est" class="val-card-num num">$23.8B</div>
               <div class="val-card-sub">Operating cash flow adjusted</div>
             </div>
             <div class="val-card">
               <div class="val-card-label">Free Cash Flow Yield</div>
-              <div id="val-fcf-yield" class="val-card-num num">1.01%</div>
+              <div id="val-fcf-yield" class="val-card-num num">0.46%</div>
               <div class="val-card-sub">FCF / Market Capitalization</div>
             </div>
             <div class="val-card">
-              <div class="val-card-label">Model Discount Rate</div>
-              <div class="val-card-num num">10.0%</div>
-              <div class="val-card-sub">3.0% Terminal Growth</div>
+              <div class="val-card-label">Selected Parameters</div>
+              <div id="val-params-display" class="val-card-num num">10% / 3%</div>
+              <div class="val-card-sub">Discount Rate / Terminal Growth</div>
             </div>
+          </div>
+
+          <!-- Sensitivity Matrix Table -->
+          <div class="matrix-container">
+            <table class="matrix-table" id="dcf-matrix-table">
+              <thead>
+                <tr>
+                  <th>Discount Rate \ Terminal Growth</th>
+                  <th class="matrix-header-num">2.0% Terminal</th>
+                  <th class="matrix-header-num">3.0% Terminal</th>
+                  <th class="matrix-header-num">4.0% Terminal</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>8.0% Discount Rate (Low Cost of Capital)</strong></td>
+                  <td id="m-8-2" class="matrix-cell">--</td>
+                  <td id="m-8-3" class="matrix-cell">--</td>
+                  <td id="m-8-4" class="matrix-cell">--</td>
+                </tr>
+                <tr>
+                  <td><strong>10.0% Discount Rate (Base Wall Street Model)</strong></td>
+                  <td id="m-10-2" class="matrix-cell">--</td>
+                  <td id="m-10-3" class="matrix-cell highlight">--</td>
+                  <td id="m-10-4" class="matrix-cell">--</td>
+                </tr>
+                <tr>
+                  <td><strong>12.0% Discount Rate (High Risk Premium)</strong></td>
+                  <td id="m-12-2" class="matrix-cell">--</td>
+                  <td id="m-12-3" class="matrix-cell">--</td>
+                  <td id="m-12-4" class="matrix-cell">--</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -284,8 +389,8 @@
             <span class="section-title">Item 1A Risk Factors: Year-over-Year Textual Delta</span>
             <div class="screener-switcher">
               <span id="diff-sim" class="preset-btn">Similarity: 0.0%</span>
-              <span id="diff-added-count" class="preset-btn" style="color: var(--signal-green);">+0 Added</span>
-              <span id="diff-removed-count" class="preset-btn" style="color: var(--signal-red);">-0 Removed</span>
+              <span id="diff-added-count" class="preset-btn" style="color: var(--color-green);">+0 Added</span>
+              <span id="diff-removed-count" class="preset-btn" style="color: var(--color-red);">-0 Removed</span>
             </div>
           </div>
           <div class="diff-container">
@@ -355,13 +460,38 @@
         </div>
       </section>
 
-      <!-- 07. PEER COMPARISON -->
+      <!-- 07. 8-K MATERIAL EVENTS (NEW!) -->
+      <section id="tab-events-8k" class="tab-panel">
+        <div class="section-box full">
+          <div class="section-header">
+            <span class="section-title">Form 8-K Material Corporate Events &amp; Item Trigger Registry</span>
+            <span class="cell-label">SEC Item Disclosures (Departures, Restatements, Earnings)</span>
+          </div>
+          <div class="table-container">
+            <table id="events-8k-table" class="brutalist-table">
+              <thead>
+                <tr>
+                  <th>Filing Date</th>
+                  <th>Report Period</th>
+                  <th>Item Code</th>
+                  <th>Event Description / Regulatory Trigger</th>
+                  <th>Accession Number</th>
+                  <th>SEC Archive</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 08. PEER COMPARISON -->
       <section id="tab-compare" class="tab-panel">
         <div class="section-box full">
           <div class="section-header">
             <span class="section-title">Head-to-Head Peer Forensic Comparison</span>
             <div class="screener-switcher">
-              <input type="text" id="compare-input" placeholder="TICKERS (e.g. NVDA, AMD, INTC)..." style="background: var(--bg-canvas); border: 1px solid var(--border-hairline); color: #FFF; padding: 4px 8px; font-size: 11px; width: 220px;" value="NVDA, AMD, INTC">
+              <input type="text" id="compare-input" placeholder="TICKERS (e.g. NVDA, AMD, INTC)..." style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: #FFF; padding: 5px 10px; font-size: 11px; width: 220px; border-radius: 3px;" value="NVDA, AMD, INTC">
               <button id="btn-run-compare" class="preset-btn">COMPARE</button>
             </div>
           </div>
@@ -386,7 +516,7 @@
         </div>
       </section>
 
-      <!-- 08. BATCH SCREENER -->
+      <!-- 09. BATCH SCREENER -->
       <section id="tab-screener" class="tab-panel">
         <div class="section-box full">
           <div class="section-header">
@@ -419,7 +549,7 @@
         </div>
       </section>
 
-      <!-- 09. AUDITED GAAP XBRL -->
+      <!-- 10. AUDITED GAAP XBRL -->
       <section id="tab-financials" class="tab-panel">
         <div class="section-box full">
           <div class="section-header">
@@ -439,7 +569,7 @@
         </div>
       </section>
 
-      <!-- 10. SEC ARCHIVE -->
+      <!-- 11. SEC ARCHIVE -->
       <section id="tab-archive" class="tab-panel">
         <div class="section-box full">
           <div class="section-header">

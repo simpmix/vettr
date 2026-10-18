@@ -66,5 +66,18 @@ class TestForensicSuite(unittest.TestCase):
         self.assertGreater(d["asset_turnover"], 0)
         self.assertGreater(d["equity_multiplier"], 1.0)
 
+    def test_accrual_matrix_clean(self):
+        acc = ForensicMetrics.calculate_accrual_matrix(self.clean_current, self.clean_prior)
+        self.assertEqual(acc["sloan_risk"], "LOW")
+        self.assertGreater(acc["dso_days"], 0)
+        self.assertGreater(acc["cash_conversion_pct"], 100)
+
+    def test_accrual_matrix_sloan_anomaly(self):
+        bad_current = dict(self.clean_current)
+        bad_current["operating_cash_flow"] = 1_000_000.0  # Massive non-cash accrual
+        acc = ForensicMetrics.calculate_accrual_matrix(bad_current, self.clean_prior)
+        self.assertEqual(acc["sloan_risk"], "HIGH")
+        self.assertIn("CRITICAL ACCRUAL ANOMALY", acc["sloan_status"])
+
 if __name__ == "__main__":
     unittest.main()

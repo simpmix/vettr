@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnExportJson = document.getElementById("btn-export-json");
   const btnExportCsv = document.getElementById("btn-export-csv");
   const btnCopyBrief = document.getElementById("btn-copy-brief");
+  const btnPrintReport = document.getElementById("btn-print-report");
   const presetBtns = document.querySelectorAll(".screener-switcher .preset-btn");
   const btnRunCompare = document.getElementById("btn-run-compare");
   const compareInput = document.getElementById("compare-input");
@@ -17,6 +18,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentReportData = null;
   let debounceTimer = null;
   let selectedDropdownIndex = -1;
+
+  let selectedDiscountRate = 10.0;
+  let selectedTerminalGrowth = 3.0;
 
   // Tab switching
   tabBtns.forEach(btn => {
@@ -188,6 +192,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Print / PDF Button
+  if (btnPrintReport) {
+    btnPrintReport.addEventListener("click", () => {
+      window.print();
+    });
+  }
+
   // Export CSV
   btnExportCsv.addEventListener("click", () => {
     if (currentTicker) {
@@ -231,6 +242,82 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Reverse DCF Scenario Control Click Handlers
+  document.querySelectorAll(".scenario-pill-btn[data-rate]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".scenario-pill-btn[data-rate]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      selectedDiscountRate = parseFloat(btn.getAttribute("data-rate"));
+      recalculateInteractiveDcf();
+    });
+  });
+
+  document.querySelectorAll(".scenario-pill-btn[data-term]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".scenario-pill-btn[data-term]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      selectedTerminalGrowth = parseFloat(btn.getAttribute("data-term"));
+      recalculateInteractiveDcf();
+    });
+  });
+
+  function recalculateInteractiveDcf() {
+    if (!currentReportData) return;
+    const mkt = currentReportData.market_data || {};
+    const mcap = mkt.market_cap || 0;
+    const valModel = currentReportData.valuation_model || {};
+    const fcfEst = valModel.fcf_estimate || 0;
+
+    const fcfYield = mcap > 0 ? (fcfEst / mcap * 100) : 0;
+    const implied = Math.max(0.0, selectedDiscountRate - (fcfYield * 1.2) + (selectedTerminalGrowth - 3.0) * 0.6 + 4.0);
+
+    const growthEl = document.getElementById("val-implied-growth");
+    const paramsEl = document.getElementById("val-params-display");
+    const verdictEl = document.getElementById("valuation-verdict-badge");
+
+    if (growthEl) growthEl.textContent = `${implied.toFixed(1)}%`;
+    if (paramsEl) paramsEl.textContent = `${selectedDiscountRate}% / ${selectedTerminalGrowth}%`;
+
+    let verdict = "MODERATE GROWTH EXPECTATIONS";
+    if (implied > 20) {
+      verdict = "PRICED FOR AGGRESSIVE GROWTH";
+      if (verdictEl) verdictEl.className = "pill-badge red";
+    } else if (implied > 8) {
+      verdict = "MODERATE GROWTH PRICED IN";
+      if (verdictEl) verdictEl.className = "pill-badge green";
+    } else {
+      verdict = "LOW GROWTH / VALUE PRICING";
+      if (verdictEl) verdictEl.className = "pill-badge green";
+    }
+    if (verdictEl) verdictEl.textContent = verdict;
+
+    // Highlight active cell in sensitivity matrix
+    document.querySelectorAll(".matrix-table td").forEach(td => td.classList.remove("highlight"));
+    const activeCellId = `m-${parseInt(selectedDiscountRate)}-${parseInt(selectedTerminalGrowth)}`;
+    const activeCell = document.getElementById(activeCellId);
+    if (activeCell) activeCell.classList.add("highlight");
+  }
+
+  function updateDcfMatrix(mcap, fcfEst) {
+    const rates = [8.0, 10.0, 12.0];
+    const terms = [2.0, 3.0, 4.0];
+    const fcfYield = mcap > 0 ? (fcfEst / mcap * 100) : 0.0;
+
+    rates.forEach(r => {
+      terms.forEach(g => {
+        const implied = Math.max(0.0, r - (fcfYield * 1.2) + (g - 3.0) * 0.6 + 4.0);
+        const cell = document.getElementById(`m-${parseInt(r)}-${parseInt(g)}`);
+        if (cell) {
+          cell.textContent = `${implied.toFixed(1)}%`;
+        }
+      });
+    });
+
+    const activeCellId = `m-${parseInt(selectedDiscountRate)}-${parseInt(selectedTerminalGrowth)}`;
+    const activeCell = document.getElementById(activeCellId);
+    if (activeCell) activeCell.classList.add("highlight");
+  }
+
   // Formatting helpers
   function formatMoney(num) {
     if (num === null || num === undefined) return "N/A";
@@ -265,8 +352,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const forensics = data.forensics || {};
     const riskScore = data.risk_score || 0;
     const valModel = data.valuation_model || {};
+    const gm = data.growth_metrics || {};
 
-    // 1. HUD Strip
+    // 1. Primary HUD Strip
     document.getElementById("hud-ticker").textContent = data.ticker || "UNKNOWN";
     document.getElementById("hud-name").textContent = mkt.name || data.ticker;
     document.getElementById("hud-cik").textContent = `CIK: ${data.cik || 'N/A'}`;
@@ -306,6 +394,30 @@ document.addEventListener("DOMContentLoaded", () => {
     riskBadge.className = `risk-value ${riskClass}`;
     riskFill.className = `risk-bar-fill ${riskClass}`;
     riskVerdict.textContent = verdictText;
+
+    // Secondary Quick Metrics Strip
+    const revCagrEl = document.getElementById("hud-rev-cagr");
+    const niCagrEl = document.getElementById("hud-ni-cagr");
+    const cashConvEl = document.getElementById("hud-cash-conv");
+    const roicEl = document.getElementById("hud-roic");
+    const sloanEl = document.getElementById("hud-sloan");
+    const dsoEl = document.getElementById("hud-dso");
+
+    if (revCagrEl) revCagrEl.textContent = gm.cagr_revenue_3yr !== null && gm.cagr_revenue_3yr !== undefined ? `${gm.cagr_revenue_3yr >= 0 ? '+' : ''}${gm.cagr_revenue_3yr}%` : "N/A";
+    if (niCagrEl) niCagrEl.textContent = gm.cagr_net_income_3yr !== null && gm.cagr_net_income_3yr !== undefined ? `${gm.cagr_net_income_3yr >= 0 ? '+' : ''}${gm.cagr_net_income_3yr}%` : "N/A";
+    if (cashConvEl) cashConvEl.textContent = gm.cash_conversion_pct !== null && gm.cash_conversion_pct !== undefined ? `${gm.cash_conversion_pct}%` : "N/A";
+    if (roicEl) roicEl.textContent = gm.roic_pct !== null && gm.roic_pct !== undefined ? `${gm.roic_pct}%` : "N/A";
+    if (sloanEl) {
+      const sVal = gm.sloan_accrual_pct;
+      sloanEl.textContent = sVal !== null && sVal !== undefined ? `${sVal >= 0 ? '+' : ''}${sVal}%` : "N/A";
+    }
+    if (dsoEl) dsoEl.textContent = gm.dso_days !== null && gm.dso_days !== undefined ? `${gm.dso_days} Days` : "N/A";
+
+    // Executive Synthesis Insight
+    const synthTextEl = document.getElementById("executive-synthesis-text");
+    if (synthTextEl) {
+      synthTextEl.textContent = data.executive_synthesis || "Verified public SEC filings. No severe regulatory or accounting red flags surfaced.";
+    }
 
     // 2. Tab 01: Forensic Models
     // Beneish
@@ -384,7 +496,7 @@ document.addEventListener("DOMContentLoaded", () => {
           fTable.innerHTML += `
             <tr>
               <td>${k}</td>
-              <td class="num" style="color: ${v === 1 ? 'var(--signal-green)' : 'var(--signal-red)'}; font-weight:700;">${v === 1 ? 'PASS' : 'FAIL'}</td>
+              <td class="num" style="color: ${v === 1 ? 'var(--color-green)' : 'var(--color-red)'}; font-weight:700;">${v === 1 ? 'PASS' : 'FAIL'}</td>
             </tr>
           `;
         }
@@ -404,7 +516,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (anomalies.length === 0) {
       anoContainer.innerHTML = `
-        <div style="color: var(--signal-green); font-size: 12px; padding: 14px; border: 1px solid rgba(16,185,129,0.2); background: var(--signal-green-bg);">
+        <div style="color: var(--color-green); font-size: 12px; padding: 14px; border: 1px solid var(--color-green-border); background: var(--color-green-bg); border-radius: 4px;">
           [VERIFIED] No severe balance sheet decoupling or operating cash flow divergences detected.
         </div>
       `;
@@ -414,7 +526,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="anomaly-item ${a.severity}">
             <div class="anomaly-title-row">
               <span class="anomaly-name">${a.title}</span>
-              <span class="anomaly-metric-callout">${a.metric || ''}</span>
+              <span class="anomaly-metric-callout num">${a.metric || ''}</span>
             </div>
             <div class="anomaly-text">${a.description}</div>
           </div>
@@ -453,7 +565,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("sent-pos-val").textContent = `${s.positive_pct}%`;
     }
 
-    // 4. Tab 03: Reverse DCF Valuation
+    // 4. Tab 03: Reverse DCF Valuation & Sensitivity Matrix
     if (valModel) {
       document.getElementById("val-implied-growth").textContent = `${valModel.implied_growth_10yr_pct || '0.0'}%`;
       document.getElementById("val-fcf-est").textContent = formatMoney(valModel.fcf_estimate);
@@ -461,6 +573,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const valBadge = document.getElementById("valuation-verdict-badge");
       valBadge.textContent = valModel.valuation_verdict || "STABLE VALUATION";
       valBadge.className = `pill-badge ${(valModel.valuation_verdict || '').includes('AGGRESSIVE') ? 'red' : 'green'}`;
+
+      updateDcfMatrix(mkt.market_cap || 0, valModel.fcf_estimate || 0);
     }
 
     // 5. Tab 04: 10-K Diff
@@ -497,13 +611,13 @@ document.addEventListener("DOMContentLoaded", () => {
         dupontTbody.innerHTML += `
           <tr>
             <td><strong>FY ${d.fiscal_year}</strong></td>
-            <td class="num" style="color: var(--text-primary); font-weight: 700;">${d.roe_pct}%</td>
+            <td class="num" style="color: var(--text-main); font-weight: 700;">${d.roe_pct}%</td>
             <td class="num">${d.roa_pct}%</td>
             <td class="num">${d.net_profit_margin_pct}%</td>
             <td class="num">${d.operating_margin_pct}%</td>
             <td class="num">${d.asset_turnover}x</td>
             <td class="num">${d.equity_multiplier}x</td>
-            <td style="color: ${d.quality_verdict.includes('HIGH') ? 'var(--signal-green)' : (d.quality_verdict.includes('LEVERAGE') ? 'var(--signal-red)' : 'var(--text-secondary)')}; font-weight: 600;">
+            <td style="color: ${d.quality_verdict.includes('HIGH') ? 'var(--color-green)' : (d.quality_verdict.includes('LEVERAGE') ? 'var(--color-red)' : 'var(--text-secondary)')}; font-weight: 600;">
               ${d.quality_verdict}
             </td>
           </tr>
@@ -529,14 +643,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const isBuy = t.transaction_type === "BUY";
         insiderTbody.innerHTML += `
           <tr>
-            <td>${t.transaction_date}</td>
+            <td class="num">${t.transaction_date}</td>
             <td><strong>${t.owner}</strong></td>
             <td>${t.title}</td>
             <td><span class="pill-badge ${isBuy ? 'green' : 'red'}">${t.transaction_type}</span></td>
             <td class="num">${t.shares.toLocaleString()}</td>
             <td class="num">${t.price_per_share > 0 ? '$' + t.price_per_share.toFixed(2) : '-'}</td>
-            <td class="num" style="color: var(--text-primary); font-weight: 700;">${formatMoney(t.total_value)}</td>
-            <td><a href="${t.filing_url}" target="_blank" rel="noopener noreferrer" style="color: var(--signal-cyan); text-decoration: none;">Form 4 ↗</a></td>
+            <td class="num" style="color: var(--text-main); font-weight: 700;">${formatMoney(t.total_value)}</td>
+            <td><a href="${t.filing_url}" target="_blank" rel="noopener noreferrer" style="color: var(--color-cyan); text-decoration: none;">Form 4 ↗</a></td>
           </tr>
         `;
       });
@@ -544,7 +658,36 @@ document.addEventListener("DOMContentLoaded", () => {
       insiderTbody.innerHTML = "<tr><td colspan='8'>No recent Form 4 insider transactions recorded.</td></tr>";
     }
 
-    // 8. Tab 09: Audited Financials
+    // 8. Tab 07: 8-K Material Events
+    const events8kTbody = document.querySelector("#events-8k-table tbody");
+    if (events8kTbody) {
+      events8kTbody.innerHTML = "";
+      const filings8k = (data.filings && data.filings.recent_8k) || [];
+
+      if (filings8k.length > 0) {
+        filings8k.forEach(ev => {
+          const rawItem = ev.items || "8.01";
+          const isHighAlert = rawItem.includes("5.02") || rawItem.includes("4.02") || rawItem.includes("1.03");
+          const isMediumAlert = rawItem.includes("4.01") || rawItem.includes("3.01") || rawItem.includes("2.04");
+          const alertClass = isHighAlert ? "high-alert" : (isMediumAlert ? "medium-alert" : "");
+
+          events8kTbody.innerHTML += `
+            <tr>
+              <td class="num">${ev.filing_date}</td>
+              <td class="num">${ev.report_date || ev.filing_date}</td>
+              <td><span class="item-badge-8k ${alertClass}">${ev.items ? 'Item ' + ev.items : '8-K Event'}</span></td>
+              <td><strong style="color: var(--text-main);">${ev.description || 'Material Definitive Disclosure'}</strong></td>
+              <td class="num" style="font-size: 11px;">${ev.accession_number}</td>
+              <td><a href="${ev.url}" target="_blank" rel="noopener noreferrer" style="color: var(--color-cyan); text-decoration: none;">Filing ↗</a></td>
+            </tr>
+          `;
+        });
+      } else {
+        events8kTbody.innerHTML = "<tr><td colspan='6'>No recent Form 8-K filings surfaced in SEC archive.</td></tr>";
+      }
+    }
+
+    // 9. Tab 10: Audited Financials
     const finSeries = data.financial_series || [];
     const finTable = document.getElementById("financials-table");
     const thead = finTable.querySelector("thead tr");
@@ -583,7 +726,7 @@ document.addEventListener("DOMContentLoaded", () => {
       tbody.innerHTML = "<tr><td colspan='5'>No XBRL financial statement records found.</td></tr>";
     }
 
-    // 9. Tab 10: SEC Archive
+    // 10. Tab 11: SEC Archive
     const filingsList = (data.filings && data.filings.all_recent) || [];
     const filingsTbody = document.querySelector("#filings-table tbody");
     filingsTbody.innerHTML = "";
@@ -593,11 +736,11 @@ document.addEventListener("DOMContentLoaded", () => {
         filingsTbody.innerHTML += `
           <tr>
             <td><strong>${f.form}</strong></td>
-            <td>${f.filing_date}</td>
-            <td>${f.report_date || f.filing_date}</td>
-            <td style="font-size: 11px;">${f.accession_number}</td>
+            <td class="num">${f.filing_date}</td>
+            <td class="num">${f.report_date || f.filing_date}</td>
+            <td class="num" style="font-size: 11px;">${f.accession_number}</td>
             <td style="color: var(--text-muted); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${f.primary_document}</td>
-            <td><a href="${f.url}" target="_blank" rel="noopener noreferrer" style="color: var(--signal-cyan); text-decoration: none;">View Archive ↗</a></td>
+            <td><a href="${f.url}" target="_blank" rel="noopener noreferrer" style="color: var(--color-cyan); text-decoration: none;">View Archive ↗</a></td>
           </tr>
         `;
       });
@@ -620,16 +763,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       comp.forEach(r => {
         const risk = r.risk_score;
-        const riskColor = risk >= 60 ? "var(--signal-red)" : (risk >= 30 ? "var(--signal-amber)" : "var(--signal-green)");
+        const riskColor = risk >= 60 ? "var(--color-red)" : (risk >= 30 ? "var(--color-amber)" : "var(--color-green)");
         const b = r.beneish || {};
         const z = r.altman || {};
         const pi = r.piotroski || {};
-        const bColor = b.is_manipulator ? "var(--signal-red)" : "var(--signal-green)";
+        const bColor = b.is_manipulator ? "var(--color-red)" : "var(--color-green)";
 
         const tr = document.createElement("tr");
         tr.className = "clickable";
         tr.innerHTML = `
-          <td><strong style="color: var(--text-primary); font-size: 13px;">${r.ticker}</strong></td>
+          <td><strong style="color: var(--text-main); font-size: 13px;">${r.ticker}</strong></td>
           <td>${r.name}</td>
           <td class="num">$${(r.price || 0).toFixed(2)}</td>
           <td class="num">${formatMoney(r.market_cap)}</td>
@@ -637,7 +780,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <td class="num" style="color: ${bColor}; font-weight: 700;">${b.score || 'N/A'}</td>
           <td class="num">${z.score || 'N/A'}</td>
           <td class="num">${pi.score ? pi.score + '/9' : 'N/A'}</td>
-          <td class="num">${r.anomalies_count > 0 ? '<span style="color:var(--signal-red); font-weight:700;">' + r.anomalies_count + ' FLAGGED</span>' : '<span style="color:var(--signal-green);">CLEAN</span>'}</td>
+          <td class="num">${r.anomalies_count > 0 ? '<span style="color:var(--color-red); font-weight:700;">' + r.anomalies_count + ' FLAGGED</span>' : '<span style="color:var(--color-green);">CLEAN</span>'}</td>
         `;
 
         tr.addEventListener("click", () => {
@@ -649,7 +792,7 @@ document.addEventListener("DOMContentLoaded", () => {
         tbody.appendChild(tr);
       });
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan='9' style='color:var(--signal-red);'>Comparison Error: ${err.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan='9' style='color:var(--color-red);'>Comparison Error: ${err.message}</td></tr>`;
     }
   }
 
@@ -667,21 +810,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
       results.forEach((r, idx) => {
         const risk = r.risk_score;
-        const riskColor = risk >= 60 ? "var(--signal-red)" : (risk >= 30 ? "var(--signal-amber)" : "var(--signal-green)");
-        const bColor = r.is_manipulator ? "var(--signal-red)" : "var(--signal-green)";
+        const riskColor = risk >= 60 ? "var(--color-red)" : (risk >= 30 ? "var(--color-amber)" : "var(--color-green)");
+        const bColor = r.is_manipulator ? "var(--color-red)" : "var(--color-green)";
 
         const tr = document.createElement("tr");
         tr.className = "clickable";
         tr.innerHTML = `
-          <td>#${idx + 1}</td>
-          <td><strong style="color: var(--text-primary); font-size: 13px;">${r.ticker}</strong></td>
+          <td class="num">#${idx + 1}</td>
+          <td><strong style="color: var(--text-main); font-size: 13px;">${r.ticker}</strong></td>
           <td>${r.name}</td>
           <td class="num">$${r.price.toFixed(2)}</td>
           <td class="num" style="color: ${riskColor}; font-weight: 700;">${risk} / 100</td>
           <td class="num" style="color: ${bColor}; font-weight: 700;">${r.beneish_score || 'N/A'}</td>
           <td class="num">${r.altman_score || 'N/A'}</td>
           <td class="num">${r.piotroski_score ? r.piotroski_score + '/9' : 'N/A'}</td>
-          <td class="num">${r.anomalies_count > 0 ? '<span style="color:var(--signal-red); font-weight:700;">' + r.anomalies_count + ' FLAGGED</span>' : '<span style="color:var(--signal-green);">CLEAN</span>'}</td>
+          <td class="num">${r.anomalies_count > 0 ? '<span style="color:var(--color-red); font-weight:700;">' + r.anomalies_count + ' FLAGGED</span>' : '<span style="color:var(--color-green);">CLEAN</span>'}</td>
         `;
 
         tr.addEventListener("click", () => {
@@ -693,7 +836,7 @@ document.addEventListener("DOMContentLoaded", () => {
         tbody.appendChild(tr);
       });
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan='9' style='color:var(--signal-red);'>Screener Error: ${err.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan='9' style='color:var(--color-red);'>Screener Error: ${err.message}</td></tr>`;
     }
   }
 

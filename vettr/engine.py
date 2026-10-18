@@ -42,6 +42,7 @@ class VettrEngine:
 
         # 3. SEC Filings List
         recent_10k_filings = self.edgar.get_filing_list(cik, form_types=["10-K", "10-K/A"], limit=5)
+        recent_8k_filings = self.edgar.get_filing_list(cik, form_types=["8-K"], limit=10)
         recent_all_filings = self.edgar.get_filing_list(cik, limit=20)
 
         # 4. Standardized XBRL Financials
@@ -56,6 +57,7 @@ class VettrEngine:
         beneish = None
         altman = None
         piotroski = None
+        accrual_matrix = None
         financial_anomalies = []
         dupont_series = []
 
@@ -67,11 +69,13 @@ class VettrEngine:
             beneish = ForensicMetrics.calculate_beneish_m_score(current_fy, prior_fy)
             altman = ForensicMetrics.calculate_altman_z_score(current_fy, market_cap=market_cap)
             piotroski = ForensicMetrics.calculate_piotroski_f_score(current_fy, prior_fy)
+            accrual_matrix = ForensicMetrics.calculate_accrual_matrix(current_fy, prior_fy)
             financial_anomalies = AnomalyDetector.analyze_financial_anomalies(current_fy, prior_fy)
             dupont_series = [DuPontAnalyzer.decompose_roe(rec) for rec in annual_series[-5:]]
         elif len(annual_series) == 1:
             current_fy = annual_series[-1]
             altman = ForensicMetrics.calculate_altman_z_score(current_fy, market_cap=market_data.get("market_cap"))
+            accrual_matrix = ForensicMetrics.calculate_accrual_matrix(current_fy)
             dupont_series = [DuPontAnalyzer.decompose_roe(current_fy)]
 
         # 6. Qualitative Disclosure Analysis & Text Diff
@@ -131,6 +135,10 @@ class VettrEngine:
                 risk_score += 15
         if piotroski and piotroski.get("score", 9) <= 4:
             risk_score += 15
+        if accrual_matrix and accrual_matrix.get("sloan_risk") == "HIGH":
+            risk_score += 20
+        elif accrual_matrix and accrual_matrix.get("sloan_risk") == "MEDIUM":
+            risk_score += 10
         if len(financial_anomalies) > 0:
             risk_score += min(len(financial_anomalies) * 10, 25)
         if len(regulatory_flags) > 0:
@@ -140,19 +148,87 @@ class VettrEngine:
 
         risk_score = min(100, max(0, risk_score))
 
+        # Performance & Growth Metrics
+        growth_metrics = {}
+        if len(annual_series) >= 2:
+            latest = annual_series[-1]
+            rev_t = float(latest.get("revenue") or 0.0)
+            ni_t = float(latest.get("net_income") or 0.0)
+            cfo_t = float(latest.get("operating_cash_flow") or 0.0)
+
+            cagr_rev = None
+            cagr_ni = None
+            if len(annual_series) >= 4:
+                base = annual_series[-4]
+                rev_0 = float(base.get("revenue") or 0.0)
+                ni_0 = float(base.get("net_income") or 0.0)
+                if rev_0 > 0 and rev_t > 0:
+                    cagr_rev = round(((rev_t / rev_0) ** (1/3) - 1) * 100, 1)
+                if ni_0 > 0 and ni_t > 0:
+                    cagr_ni = round(((ni_t / ni_0) ** (1/3) - 1) * 100, 1)
+
+            cash_conversion = round((cfo_t / ni_t * 100), 1) if ni_t > 0 else None
+
+            ebit = float(latest.get("operating_income") or (ni_t * 1.25))
+            nopat = ebit * 0.79
+            assets = float(latest.get("total_assets") or 1.0)
+            cl = float(latest.get("current_liabilities") or (assets * 0.3))
+            invested_capital = max(1.0, assets - cl)
+            roic = round((nopat / invested_capital * 100), 1)
+
+            growth_metrics = {
+                "cagr_revenue_3yr": cagr_rev,
+                "cagr_net_income_3yr": cagr_ni,
+                "cash_conversion_pct": cash_conversion,
+                "roic_pct": roic,
+                "sloan_accrual_pct": accrual_matrix.get("sloan_accrual_pct") if accrual_matrix else None,
+                "sloan_status": accrual_matrix.get("sloan_status") if accrual_matrix else "NORMAL",
+                "dso_days": accrual_matrix.get("dso_days") if accrual_matrix else None,
+                "dio_days": accrual_matrix.get("dio_days") if accrual_matrix else None
+            }
+
+        # Executive Forensic Synthesis Narrative
+        synthesis_parts = []
+        if beneish:
+            if beneish.get("is_manipulator"):
+                synthesis_parts.append(f"Beneish M-Score ({beneish.get('score')}) triggers earnings manipulation threshold (-1.78)")
+            else:
+                synthesis_parts.append(f"Beneish M-Score ({beneish.get('score')}) indicates low probability of accounting manipulation")
+
+        if altman:
+            synthesis_parts.append(f"Altman Z-Score ({altman.get('score')}) places entity in {altman.get('zone')}")
+
+        if piotroski:
+            synthesis_parts.append(f"Piotroski F-Score ({piotroski.get('score')}/9) reflects {piotroski.get('rating')}")
+
+        if accrual_matrix:
+            s_pct = accrual_matrix.get("sloan_accrual_pct", 0)
+            if s_pct > 10.0:
+                synthesis_parts.append(f"Sloan Accrual Anomaly flagged (+{s_pct}%), indicating earnings non-cash decoupling")
+            else:
+                synthesis_parts.append(f"Accruals are cash-backed (Sloan Ratio: {s_pct:+.1f}%)")
+
+        if financial_anomalies:
+            synthesis_parts.append(f"{len(financial_anomalies)} financial statement divergence surfaced")
+
+        executive_synthesis = ". ".join(synthesis_parts) + "."
+
         return {
             "ticker": clean_ticker,
             "cik": cik,
             "market_data": market_data,
             "risk_score": risk_score,
+            "executive_synthesis": executive_synthesis,
             "forensics": {
                 "beneish_m_score": beneish,
                 "altman_z_score": altman,
                 "piotroski_f_score": piotroski,
+                "accrual_matrix": accrual_matrix,
                 "anomalies": financial_anomalies,
                 "regulatory_flags": regulatory_flags,
                 "sentiment": sentiment_analysis
             },
+            "growth_metrics": growth_metrics,
             "financial_series": annual_series[-5:],  # Last 5 fiscal years
             "dupont_series": dupont_series,
             "valuation_model": valuation_model,
@@ -160,6 +236,7 @@ class VettrEngine:
             "insider_activity": insider_data,
             "filings": {
                 "recent_10k": recent_10k_filings,
+                "recent_8k": recent_8k_filings,
                 "all_recent": recent_all_filings[:15]
             }
         }
