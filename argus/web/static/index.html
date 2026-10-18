@@ -3,422 +3,393 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ARGUS // Autonomous Financial Forensics &amp; Regulatory Intelligence Terminal</title>
+  <title>ARGUS // Financial Forensics &amp; Regulatory Intelligence Terminal</title>
   <link rel="stylesheet" href="/static/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body class="terminal-body">
-  <!-- Top Command Header -->
+  <!-- Minimalist Header -->
   <header class="terminal-header">
     <div class="header-left">
       <div class="brand">
-        <span class="brand-logo">⬡</span>
-        <span class="brand-name">ARGUS</span>
-        <span class="brand-tag">FORENSICS TERMINAL v1.0</span>
+        <div class="brand-symbol">A</div>
+        <div class="brand-text">
+          <span class="brand-name">ARGUS RESEARCH</span>
+          <span class="brand-meta">U.S. SEC EDGAR FORENSICS</span>
+        </div>
       </div>
-      <div class="system-pills">
-        <span class="status-pill status-live"><span class="pulse-dot"></span> SEC EDGAR : CONNECTED</span>
-        <span class="status-pill status-market"><span class="pulse-dot green"></span> MARKET FEED : LIVE</span>
+      <div class="system-status">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span>SEC.EDGAR: ACTIVE</span>
+        </div>
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span>MARKET: LIVE</span>
+        </div>
       </div>
     </div>
 
-    <!-- Command & Ticker Search -->
+    <!-- Autocomplete Command Bar -->
     <div class="header-center">
-      <form id="ticker-form" class="command-bar">
-        <span class="command-prompt">EXEC&gt;</span>
+      <form id="ticker-form" class="command-box">
+        <span class="command-prefix">QUERY&gt;</span>
         <input 
           type="text" 
           id="ticker-input" 
-          placeholder="SEARCH TICKER (e.g. NVDA, AAPL, TSLA)..." 
+          placeholder="ENTER TICKER OR COMPANY (e.g. NVDA, AAPL, TSLA)..." 
           autocomplete="off" 
           spellcheck="false"
           value="NVDA"
         />
-        <button type="submit" class="command-submit" title="Analyze Ticker">SCAN [↵]</button>
+        <span class="command-key">/</span>
       </form>
+      <!-- Autocomplete Dropdown List -->
+      <div id="search-dropdown" class="search-dropdown hidden"></div>
     </div>
 
     <div class="header-right">
-      <div class="quick-tickers">
-        <span class="quick-label">QUICK:</span>
-        <button class="ticker-pill" data-ticker="NVDA">NVDA</button>
-        <button class="ticker-pill" data-ticker="AAPL">AAPL</button>
-        <button class="ticker-pill" data-ticker="TSLA">TSLA</button>
-        <button class="ticker-pill" data-ticker="MSFT">MSFT</button>
-        <button class="ticker-pill" data-ticker="PLTR">PLTR</button>
-      </div>
-      <button id="btn-export-dossier" class="action-btn-dossier" title="Export Markdown Due Diligence Dossier">
-        📥 EXPORT DOSSIER
+      <button id="btn-export-dossier" class="btn-secondary" title="Export Markdown Due Diligence Dossier">
+        EXPORT DOSSIER (.MD)
+      </button>
+      <button id="btn-export-json" class="btn-secondary" title="Export Raw Financial Data JSON">
+        EXPORT JSON
       </button>
     </div>
   </header>
 
-  <!-- Main Container -->
+  <!-- Main Workstation -->
   <main class="terminal-main">
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="loading-overlay hidden">
-      <div class="terminal-loader">
-        <div class="loader-hex">⬡</div>
-        <div class="loader-text">INTERROGATING SEC EDGAR &amp; FINANCIAL ARCHIVES...</div>
-        <div class="loader-bar"><div class="loader-fill"></div></div>
+    <!-- Loading Curtain -->
+    <div id="loading-curtain" class="loading-curtain hidden">
+      <div class="loading-box">
+        <span class="loading-label">INTERROGATING SEC EDGAR ARCHIVES...</span>
+        <div class="loading-progress"><div class="loading-fill"></div></div>
       </div>
     </div>
 
-    <!-- Company Overview Hero HUD -->
-    <section id="hero-hud" class="hero-hud">
-      <div class="hud-left">
-        <div class="ticker-title-row">
-          <h1 id="hud-ticker" class="hud-ticker">NVDA</h1>
-          <h2 id="hud-name" class="hud-name">NVIDIA Corporation</h2>
-          <span id="hud-cik" class="hud-cik">CIK: 0001045810</span>
-        </div>
-        <div class="hud-meta-row">
-          <span id="hud-sector" class="meta-item">Sector: Technology</span>
-          <span class="meta-sep">•</span>
-          <span id="hud-industry" class="meta-item">Industry: Semiconductors</span>
-        </div>
-      </div>
-
-      <div class="hud-center">
-        <div class="price-display">
-          <div id="hud-price" class="current-price">$214.13</div>
-          <div id="hud-change" class="price-change-pill negative">-1.43%</div>
-        </div>
-        <div class="valuation-multiples">
-          <div class="mult-item"><span class="mult-label">Mkt Cap:</span> <span id="hud-mcap" class="mult-val">$5.17T</span></div>
-          <div class="mult-item"><span class="mult-label">P/E (TTM):</span> <span id="hud-pe" class="mult-val">68.4</span></div>
-          <div class="mult-item"><span class="mult-label">52W Range:</span> <span id="hud-52w" class="mult-val">$75.6 - $218.4</span></div>
-        </div>
-      </div>
-
-      <div class="hud-right">
-        <div class="risk-meter-card">
-          <div class="risk-meter-header">
-            <span class="risk-label">COMPOSITE FORENSIC RISK</span>
-            <span id="risk-score-badge" class="risk-score-badge high">78 / 100</span>
+    <!-- Stark Brutalist Hero HUD -->
+    <section class="brutalist-hud">
+      <div class="hud-primary-strip">
+        <!-- Company Identity -->
+        <div class="hud-cell">
+          <span class="cell-label">Entity Profile</span>
+          <div class="company-title-row">
+            <span id="hud-ticker" class="ticker-display">NVDA</span>
+            <span id="hud-name" class="name-display">NVIDIA Corporation</span>
           </div>
-          <div class="risk-bar-container">
+          <div class="company-meta">
+            <span id="hud-cik">CIK: 0001045810</span> • <span id="hud-sector">Technology</span> • <span id="hud-industry">Semiconductors</span>
+          </div>
+        </div>
+
+        <!-- Market & Valuation -->
+        <div class="hud-cell">
+          <span class="cell-label">Market Quote &amp; Multiples</span>
+          <div class="price-strip">
+            <span id="hud-price" class="current-price">$214.13</span>
+            <span id="hud-change" class="delta-badge negative">-1.43%</span>
+          </div>
+          <div class="multiples-row">
+            <span>MCAP: <strong id="hud-mcap">$5.17T</strong></span>
+            <span>P/E: <strong id="hud-pe">68.4</strong></span>
+            <span>52W: <strong id="hud-52w">$75.6 - $218.4</strong></span>
+          </div>
+        </div>
+
+        <!-- Composite Forensic Risk -->
+        <div class="hud-cell risk-meter-cell">
+          <span class="cell-label">Composite Risk Rating</span>
+          <div class="risk-summary-row">
+            <span id="risk-score-badge" class="risk-value high">78 / 100</span>
+          </div>
+          <div class="risk-bar">
             <div id="risk-bar-fill" class="risk-bar-fill high" style="width: 78%;"></div>
           </div>
-          <div id="risk-verdict" class="risk-verdict">ELEVATED FORENSIC SCRUTINY</div>
+          <span id="risk-verdict" class="risk-verdict-text">ELEVATED FORENSIC SCRUTINY</span>
         </div>
       </div>
     </section>
 
     <!-- Navigation Tabs -->
     <nav class="terminal-tabs">
-      <button class="tab-btn active" data-tab="tab-forensics">
-        <span class="tab-index">[1]</span> FORENSIC RADAR
-      </button>
-      <button class="tab-btn" data-tab="tab-diff">
-        <span class="tab-index">[2]</span> SEC 10-K DELTA
-      </button>
-      <button class="tab-btn" data-tab="tab-dupont">
-        <span class="tab-index">[3]</span> DUPONT ROE ENGINE
-      </button>
-      <button class="tab-btn" data-tab="tab-insiders">
-        <span class="tab-index">[4]</span> FORM 4 INSIDER RADAR
-      </button>
-      <button class="tab-btn" data-tab="tab-screener">
-        <span class="tab-index">[5]</span> BATCH SCREENER
-      </button>
-      <button class="tab-btn" data-tab="tab-financials">
-        <span class="tab-index">[6]</span> AUDITED FINANCIALS
-      </button>
-      <button class="tab-btn" data-tab="tab-archive">
-        <span class="tab-index">[7]</span> EDGAR ARCHIVE
-      </button>
+      <button class="tab-btn active" data-tab="tab-models">01. FORENSIC MODELS</button>
+      <button class="tab-btn" data-tab="tab-anomalies">02. ANOMALY DETECTOR</button>
+      <button class="tab-btn" data-tab="tab-diff">03. 10-K DISCLOSURE DELTA</button>
+      <button class="tab-btn" data-tab="tab-dupont">04. DUPONT ROE ENGINE</button>
+      <button class="tab-btn" data-tab="tab-insiders">05. FORM 4 INSIDER RADAR</button>
+      <button class="tab-btn" data-tab="tab-screener">06. BATCH SCREENER</button>
+      <button class="tab-btn" data-tab="tab-financials">07. AUDITED GAAP XBRL</button>
+      <button class="tab-btn" data-tab="tab-archive">08. SEC ARCHIVE</button>
     </nav>
 
-    <!-- Tab Contents -->
+    <!-- Content Sections -->
     <div class="tab-panels">
-      <!-- TAB 1: FORENSIC RADAR -->
-      <section id="tab-forensics" class="tab-panel active">
-        <!-- 3 Quantitative Forensic Cards Grid -->
+      <!-- 01. FORENSIC MODELS -->
+      <section id="tab-models" class="tab-panel active">
         <div class="models-grid">
-          <!-- Beneish M-Score Card -->
+          <!-- Beneish M-Score -->
           <div class="model-card">
-            <div class="model-header">
-              <span class="model-title">BENEISH M-SCORE</span>
-              <span class="model-subtitle">Earnings Manipulation Detector</span>
+            <div class="card-top">
+              <span class="card-title">Beneish M-Score</span>
+              <span class="card-citation">Beneish (1999)</span>
             </div>
-            <div class="model-metric">
-              <span id="beneish-score" class="metric-value red">-1.246</span>
-              <span class="metric-threshold">Threshold: -1.78</span>
+            <div class="metric-strip">
+              <span id="beneish-score" class="score-num red">-1.246</span>
+              <span class="score-threshold">Benchmark: &lt; -1.78</span>
             </div>
-            <div id="beneish-status" class="model-badge badge-red">PROBABLE MANIPULATION RISK</div>
-            <p class="model-desc">
-              8-factor probabilistic accounting model. Scores &gt; -1.78 indicate high likelihood of aggressive or synthetic earnings recognition.
+            <div id="beneish-status" class="assessment-banner red">PROBABLE MANIPULATION RISK</div>
+            <p class="card-methodology">
+              8-variable probabilistic accounting regression. Scores above -1.78 indicate high statistical probability of earnings inflation or accelerated revenue.
             </p>
-            <div id="beneish-vars" class="var-list">
-              <!-- Rendered via JS -->
-            </div>
+            <table class="factors-table" id="beneish-table">
+              <tbody>
+                <!-- Rendered by JS -->
+              </tbody>
+            </table>
           </div>
 
-          <!-- Altman Z-Score Card -->
+          <!-- Altman Z-Score -->
           <div class="model-card">
-            <div class="model-header">
-              <span class="model-title">ALTMAN Z-SCORE</span>
-              <span class="model-subtitle">Insolvency &amp; Default Predictor</span>
+            <div class="card-top">
+              <span class="card-title">Altman Z-Score</span>
+              <span class="card-citation">Altman (1968)</span>
             </div>
-            <div class="model-metric">
-              <span id="altman-score" class="metric-value green">65.82</span>
-              <span class="metric-threshold">Safe &gt; 2.99 | Distress &lt; 1.81</span>
+            <div class="metric-strip">
+              <span id="altman-score" class="score-num green">65.82</span>
+              <span class="score-threshold">Safe &gt; 2.99 | Distress &lt; 1.81</span>
             </div>
-            <div id="altman-status" class="model-badge badge-green">SAFE ZONE (LOW DEFAULT RISK)</div>
-            <p class="model-desc">
-              Measures liquidity, cumulative profitability, and balance sheet leverage to forecast default probability.
+            <div id="altman-status" class="assessment-banner green">SAFE ZONE (LOW DEFAULT RISK)</div>
+            <p class="card-methodology">
+              Empirical discriminant analysis predicting corporate solvency and insolvency probability within a 24-month horizon.
             </p>
-            <div id="altman-vars" class="var-list">
-              <!-- Rendered via JS -->
-            </div>
+            <table class="factors-table" id="altman-table">
+              <tbody>
+                <!-- Rendered by JS -->
+              </tbody>
+            </table>
           </div>
 
-          <!-- Piotroski F-Score Card -->
+          <!-- Piotroski F-Score -->
           <div class="model-card">
-            <div class="model-header">
-              <span class="model-title">PIOTROSKI F-SCORE</span>
-              <span class="model-subtitle">Financial Strength &amp; Momentum</span>
+            <div class="card-top">
+              <span class="card-title">Piotroski F-Score</span>
+              <span class="card-citation">Piotroski (2000)</span>
             </div>
-            <div class="model-metric">
-              <span id="piotroski-score" class="metric-value yellow">5 / 9</span>
-              <span class="metric-threshold">High: 8-9 | Weak: 0-4</span>
+            <div class="metric-strip">
+              <span id="piotroski-score" class="score-num yellow">5 / 9</span>
+              <span class="score-threshold">Prime: 8-9 | Weak: 0-4</span>
             </div>
-            <div id="piotroski-status" class="model-badge badge-yellow">STABLE / MODERATE (5-7)</div>
-            <p class="model-desc">
-              9-signal scorecard evaluating fundamental profitability, operational leverage, and margin health.
+            <div id="piotroski-status" class="assessment-banner yellow">STABLE / MODERATE (5-7)</div>
+            <p class="card-methodology">
+              9-signal discrete binary metric evaluating operational momentum, balance sheet liquidity, and capital structure discipline.
             </p>
-            <div id="piotroski-vars" class="var-list">
-              <!-- Rendered via JS -->
-            </div>
+            <table class="factors-table" id="piotroski-table">
+              <tbody>
+                <!-- Rendered by JS -->
+              </tbody>
+            </table>
           </div>
         </div>
+      </section>
 
-        <!-- Anomaly Feed & Sentiment Section -->
-        <div class="forensic-subgrid">
-          <!-- Detected Divergences Feed -->
-          <div class="panel-box">
-            <div class="panel-box-header">
-              <span class="panel-box-title">🚨 DETECTED BALANCE SHEET &amp; CASH FLOW ANOMALIES</span>
-              <span id="anomaly-count-pill" class="count-pill">2 ALERTS</span>
+      <!-- 02. ANOMALY DETECTOR -->
+      <section id="tab-anomalies" class="tab-panel">
+        <div class="split-grid">
+          <!-- Detected Divergences -->
+          <div class="section-box">
+            <div class="section-header">
+              <span class="section-title">Quantitative Accrual Divergences</span>
+              <span id="anomaly-count-pill" class="pill-badge red">2 FLAGGED</span>
             </div>
-            <div id="anomalies-container" class="anomalies-container">
-              <!-- Populated by JS -->
+            <div id="anomalies-container">
+              <!-- Rendered via JS -->
             </div>
           </div>
 
-          <!-- Regulatory Triggers & Loughran-McDonald Tone -->
-          <div class="panel-box">
-            <div class="panel-box-header">
-              <span class="panel-box-title">🏛️ REGULATORY DISCLOSURE SCANNER &amp; SENTIMENT</span>
+          <!-- Regulatory & Sentiment -->
+          <div class="section-box">
+            <div class="section-header">
+              <span class="section-title">Regulatory Disclosures &amp; Lexicon Tone</span>
             </div>
-            <div id="regulatory-container" class="regulatory-container">
-              <!-- Populated by JS -->
+            <div id="regulatory-container">
+              <!-- Rendered via JS -->
             </div>
-            <div class="sentiment-box">
-              <div class="sentiment-title">Loughran-McDonald Financial Lexicon Tone:</div>
-              <div id="sentiment-tone" class="sentiment-badge">CAUTIONARY / DEFENSIVE</div>
-              <div class="sentiment-bars">
-                <div class="sent-item">
-                  <span>Uncertainty:</span>
-                  <div class="sent-bar"><div id="sent-unc" class="sent-fill yellow" style="width: 25%;"></div></div>
-                  <span id="sent-unc-val">0.97%</span>
-                </div>
-                <div class="sent-item">
-                  <span>Litigious:</span>
-                  <div class="sent-bar"><div id="sent-lit" class="sent-fill red" style="width: 15%;"></div></div>
-                  <span id="sent-lit-val">0.38%</span>
-                </div>
-                <div class="sent-item">
-                  <span>Negative:</span>
-                  <div class="sent-bar"><div id="sent-neg" class="sent-fill red" style="width: 20%;"></div></div>
-                  <span id="sent-neg-val">0.56%</span>
-                </div>
-                <div class="sent-item">
-                  <span>Positive:</span>
-                  <div class="sent-bar"><div id="sent-pos" class="sent-fill green" style="width: 10%;"></div></div>
-                  <span id="sent-pos-val">0.19%</span>
-                </div>
+            <div class="sentiment-grid">
+              <div class="sent-card">
+                <span class="sent-card-label">Uncertainty</span>
+                <span id="sent-unc-val" class="sent-card-val" style="color: var(--signal-amber);">0.97%</span>
+              </div>
+              <div class="sent-card">
+                <span class="sent-card-label">Litigious</span>
+                <span id="sent-lit-val" class="sent-card-val" style="color: var(--signal-red);">0.38%</span>
+              </div>
+              <div class="sent-card">
+                <span class="sent-card-label">Negative Tone</span>
+                <span id="sent-neg-val" class="sent-card-val" style="color: var(--signal-red);">0.56%</span>
+              </div>
+              <div class="sent-card">
+                <span class="sent-card-label">Positive Tone</span>
+                <span id="sent-pos-val" class="sent-card-val" style="color: var(--signal-green);">0.19%</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- TAB 2: SEC FILING DIFF -->
+      <!-- 03. 10-K DISCLOSURE DELTA -->
       <section id="tab-diff" class="tab-panel">
-        <div class="panel-box full-width">
-          <div class="panel-box-header">
-            <span class="panel-box-title">📄 YEAR-OVER-YEAR 10-K DISCLOSURE DELTA (ITEM 1A RISK FACTORS)</span>
-            <div class="diff-summary-stats">
-              <span id="diff-sim" class="stat-badge">Similarity: 0.0%</span>
-              <span id="diff-added-count" class="stat-badge green">+0 Added Sentences</span>
-              <span id="diff-removed-count" class="stat-badge red">-0 Removed Sentences</span>
+        <div class="section-box full">
+          <div class="section-header">
+            <span class="section-title">Item 1A Risk Factors: Year-over-Year Textual Delta</span>
+            <div class="screener-switcher">
+              <span id="diff-sim" class="preset-btn">Similarity: 0.0%</span>
+              <span id="diff-added-count" class="preset-btn" style="color: var(--signal-green);">+0 Added</span>
+              <span id="diff-removed-count" class="preset-btn" style="color: var(--signal-red);">-0 Removed</span>
             </div>
           </div>
-          <p class="diff-intro">
-            Corporate attorneys frequently bury emerging legal, supply-chain, or customer concentration risks by silently appending clauses to annual filings. Below are the key newly inserted and removed risk disclosures.
-          </p>
-          <div class="diff-columns">
-            <div class="diff-col added-col">
-              <h3 class="diff-col-title green">✨ SUBSTANTIVE NEW DISCLOSURES INSERTED</h3>
-              <div id="diff-added-list" class="diff-sentences-list">
-                <!-- JS populated -->
-              </div>
+          <div class="diff-container">
+            <div class="diff-pane">
+              <div class="diff-pane-title add">Substantive New Disclosures Inserted</div>
+              <div id="diff-added-list" class="diff-scroll"></div>
             </div>
-            <div class="diff-col removed-col">
-              <h3 class="diff-col-title red">❌ DISCLOSURES REMOVED OR STRUCK OUT</h3>
-              <div id="diff-removed-list" class="diff-sentences-list">
-                <!-- JS populated -->
-              </div>
+            <div class="diff-pane">
+              <div class="diff-pane-title del">Disclosures Struck Out or Modified</div>
+              <div id="diff-removed-list" class="diff-scroll"></div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- TAB 3: DUPONT ROE ENGINE -->
+      <!-- 04. DUPONT ROE ENGINE -->
       <section id="tab-dupont" class="tab-panel">
-        <div class="panel-box full-width">
-          <div class="panel-box-header">
-            <span class="panel-box-title">🔬 DUPONT 3-WAY &amp; 5-WAY ROE DECOMPOSITION</span>
-            <span class="source-tag">PROFITABILITY DRIVER ANALYSIS</span>
+        <div class="section-box full">
+          <div class="section-header">
+            <span class="section-title">DuPont 3-Way &amp; 5-Way Return on Equity Breakdown</span>
+            <span class="cell-label">Deconstructed Profitability Drivers</span>
           </div>
-          <p class="diff-intro">
-            Is Return on Equity (ROE) driven by pricing power (Operating Margin), capital efficiency (Asset Turnover), or excessive debt (Financial Leverage)?
-          </p>
-          <div class="table-responsive">
-            <table id="dupont-table" class="financials-table">
+          <div class="table-container">
+            <table id="dupont-table" class="brutalist-table">
               <thead>
                 <tr>
-                  <th>Fiscal Year</th>
-                  <th>ROE (%)</th>
-                  <th>ROA (%)</th>
-                  <th>Net Margin (%)</th>
-                  <th>Operating Margin (%)</th>
-                  <th>Asset Turnover</th>
-                  <th>Equity Multiplier (Leverage)</th>
-                  <th>Quality Assessment</th>
+                  <th>Fiscal Period</th>
+                  <th class="num">ROE (%)</th>
+                  <th class="num">ROA (%)</th>
+                  <th class="num">Net Margin</th>
+                  <th class="num">Operating Margin</th>
+                  <th class="num">Asset Turnover</th>
+                  <th class="num">Financial Leverage</th>
+                  <th>Quality Diagnosis</th>
                 </tr>
               </thead>
-              <tbody>
-                <!-- Injected via JS -->
-              </tbody>
+              <tbody></tbody>
             </table>
           </div>
         </div>
       </section>
 
-      <!-- TAB 4: FORM 4 INSIDER TRADING RADAR -->
+      <!-- 05. FORM 4 INSIDER RADAR -->
       <section id="tab-insiders" class="tab-panel">
-        <div class="panel-box full-width">
-          <div class="panel-box-header">
-            <span class="panel-box-title">💼 U.S. SEC FORM 4 C-SUITE &amp; DIRECTOR INSIDER ACTIVITY</span>
-            <div id="insider-sentiment-badge" class="stat-badge red">HEAVY INSIDER SELLING</div>
+        <div class="section-box full">
+          <div class="section-header">
+            <span class="section-title">C-Suite &amp; Director Beneficial Ownership Changes (SEC Form 4)</span>
+            <span id="insider-sentiment-badge" class="pill-badge red">HEAVY SELLING</span>
           </div>
-          <div class="table-responsive">
-            <table id="insiders-table" class="filings-table">
+          <div class="table-container">
+            <table id="insiders-table" class="brutalist-table">
               <thead>
                 <tr>
-                  <th>Filing Date</th>
+                  <th>Date</th>
                   <th>Reporting Owner</th>
-                  <th>Title / Role</th>
-                  <th>Transaction Type</th>
-                  <th>Shares Traded</th>
-                  <th>Price / Share</th>
-                  <th>Total Transaction Value</th>
-                  <th>SEC Link</th>
+                  <th>Title / Capacity</th>
+                  <th>Transaction</th>
+                  <th class="num">Shares</th>
+                  <th class="num">Price</th>
+                  <th class="num">Total Value</th>
+                  <th>Filing</th>
                 </tr>
               </thead>
-              <tbody>
-                <!-- Injected via JS -->
-              </tbody>
+              <tbody></tbody>
             </table>
           </div>
         </div>
       </section>
 
-      <!-- TAB 5: BATCH SCREENER -->
+      <!-- 06. BATCH SCREENER -->
       <section id="tab-screener" class="tab-panel">
-        <div class="panel-box full-width">
-          <div class="panel-box-header">
-            <span class="panel-box-title">🔍 BATCH FORENSIC SCREENER &amp; ANOMALY RADAR</span>
-            <div class="screener-controls">
-              <button class="screener-pill active" data-preset="mega_tech">Mega Tech</button>
-              <button class="screener-pill" data-preset="semis">Semiconductors</button>
-              <button class="screener-pill" data-preset="high_growth">High Growth</button>
-              <button class="screener-pill" data-preset="ev_clean">EV &amp; CleanTech</button>
+        <div class="section-box full">
+          <div class="section-header">
+            <span class="section-title">Cross-Sector Batch Anomaly Screener</span>
+            <div class="screener-switcher">
+              <button class="preset-btn active" data-preset="mega_tech">Mega Tech</button>
+              <button class="preset-btn" data-preset="semis">Semiconductors</button>
+              <button class="preset-btn" data-preset="high_growth">High Growth</button>
+              <button class="preset-btn" data-preset="ev_clean">EV &amp; CleanTech</button>
             </div>
           </div>
-          <div class="table-responsive">
-            <table id="screener-table" class="filings-table">
+          <div class="table-container">
+            <table id="screener-table" class="brutalist-table">
               <thead>
                 <tr>
                   <th>Rank</th>
-                  <th>Ticker</th>
-                  <th>Company Name</th>
-                  <th>Market Price</th>
-                  <th>Forensic Risk Score</th>
-                  <th>Beneish M-Score</th>
-                  <th>Altman Z-Score</th>
-                  <th>Piotroski F</th>
-                  <th>Anomalies</th>
+                  <th>Symbol</th>
+                  <th>Security Name</th>
+                  <th class="num">Quote</th>
+                  <th class="num">Risk Score</th>
+                  <th class="num">Beneish M</th>
+                  <th class="num">Altman Z</th>
+                  <th class="num">Piotroski F</th>
+                  <th class="num">Anomalies</th>
                 </tr>
               </thead>
-              <tbody>
-                <!-- Injected via JS -->
-              </tbody>
+              <tbody></tbody>
             </table>
           </div>
         </div>
       </section>
 
-      <!-- TAB 6: AUDITED XBRL FINANCIALS -->
+      <!-- 07. AUDITED GAAP XBRL -->
       <section id="tab-financials" class="tab-panel">
-        <div class="panel-box full-width">
-          <div class="panel-box-header">
-            <span class="panel-box-title">📊 AUDITED GAAP HISTORICAL FINANCIAL STATEMENT SERIES</span>
-            <span class="source-tag">SOURCE: US SEC XBRL COMPANY FACTS</span>
+        <div class="section-box full">
+          <div class="section-header">
+            <span class="section-title">Audited Multi-Year Financial Series</span>
+            <span class="cell-label">Source: U.S. SEC XBRL Company Facts</span>
           </div>
-          <div class="table-responsive">
-            <table id="financials-table" class="financials-table">
+          <div class="table-container">
+            <table id="financials-table" class="brutalist-table">
               <thead>
                 <tr>
-                  <th>Financial Metric (USD)</th>
-                  <!-- Years dynamically injected -->
+                  <th>GAAP Line Item (USD)</th>
                 </tr>
               </thead>
-              <tbody>
-                <!-- Line items dynamically injected -->
-              </tbody>
+              <tbody></tbody>
             </table>
           </div>
         </div>
       </section>
 
-      <!-- TAB 7: OFFICIAL EDGAR ARCHIVE -->
+      <!-- 08. SEC ARCHIVE -->
       <section id="tab-archive" class="tab-panel">
-        <div class="panel-box full-width">
-          <div class="panel-box-header">
-            <span class="panel-box-title">🏛️ DIRECT U.S. SEC EDGAR SUBMISSIONS FEED</span>
-            <span class="source-tag">REAL-TIME ACCESSION ARCHIVE</span>
+        <div class="section-box full">
+          <div class="section-header">
+            <span class="section-title">Chronological SEC EDGAR Submissions Archive</span>
+            <span class="cell-label">Real-time Filing Repository</span>
           </div>
-          <div class="table-responsive">
-            <table id="filings-table" class="filings-table">
+          <div class="table-container">
+            <table id="filings-table" class="brutalist-table">
               <thead>
                 <tr>
-                  <th>Form Type</th>
+                  <th>Form</th>
                   <th>Filing Date</th>
-                  <th>Report Date</th>
+                  <th>Report Period</th>
                   <th>Accession Number</th>
-                  <th>Description</th>
-                  <th>EDGAR Official Link</th>
+                  <th>Primary Document</th>
+                  <th>Access Archive</th>
                 </tr>
               </thead>
-              <tbody>
-                <!-- Rows injected via JS -->
-              </tbody>
+              <tbody></tbody>
             </table>
           </div>
         </div>
@@ -426,13 +397,10 @@
     </div>
   </main>
 
+  <!-- Clean Footer -->
   <footer class="terminal-footer">
-    <div class="footer-left">
-      <span>ARGUS RESEARCH ENGINE • ZERO-COST OPEN FINANCIAL INTELLIGENCE</span>
-    </div>
-    <div class="footer-right">
-      <span>HOTKEY: PRESS <strong>/</strong> TO FOCUS COMMAND BAR</span>
-    </div>
+    <span>ARGUS FINANCIAL RESEARCH TERMINAL • SEC EDGAR AUDIT ENGINE</span>
+    <span>HOTKEY: PRESS [/] FOR COMMAND SEARCH</span>
   </footer>
 
   <script src="/static/app.js"></script>

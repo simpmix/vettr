@@ -1,14 +1,18 @@
 document.addEventListener("DOMContentLoaded", () => {
   const tickerForm = document.getElementById("ticker-form");
   const tickerInput = document.getElementById("ticker-input");
-  const loadingOverlay = document.getElementById("loading-overlay");
+  const searchDropdown = document.getElementById("search-dropdown");
+  const loadingCurtain = document.getElementById("loading-curtain");
   const tabBtns = document.querySelectorAll(".tab-btn");
   const tabPanels = document.querySelectorAll(".tab-panel");
-  const quickPills = document.querySelectorAll(".ticker-pill");
   const btnExportDossier = document.getElementById("btn-export-dossier");
-  const screenerPills = document.querySelectorAll(".screener-pill");
+  const btnExportJson = document.getElementById("btn-export-json");
+  const presetBtns = document.querySelectorAll(".screener-switcher .preset-btn");
 
   let currentTicker = "NVDA";
+  let currentReportData = null;
+  let debounceTimer = null;
+  let selectedDropdownIndex = -1;
 
   // Tab switching
   tabBtns.forEach(btn => {
@@ -23,9 +27,8 @@ document.addEventListener("DOMContentLoaded", () => {
         targetPanel.classList.add("active");
       }
 
-      // If screener tab opened for the first time, load screener
       if (targetId === "tab-screener") {
-        const activePreset = document.querySelector(".screener-pill.active");
+        const activePreset = document.querySelector(".screener-switcher .preset-btn.active");
         const preset = activePreset ? activePreset.getAttribute("data-preset") : "mega_tech";
         loadScreener(preset);
       }
@@ -41,42 +44,143 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Quick ticker pill click
-  quickPills.forEach(pill => {
-    pill.addEventListener("click", () => {
-      const ticker = pill.getAttribute("data-ticker");
-      tickerInput.value = ticker;
-      runAnalysis(ticker);
-    });
+  // Autocomplete Live Search
+  tickerInput.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    const query = tickerInput.value.trim();
+    if (query.length === 0) {
+      searchDropdown.classList.add("hidden");
+      return;
+    }
+
+    debounceTimer = setTimeout(async () => {
+      try {
+        const resp = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        if (!resp.ok) return;
+        const matches = await resp.json();
+        renderSearchDropdown(matches);
+      } catch (err) {
+        console.error("Autocomplete error:", err);
+      }
+    }, 120);
   });
 
-  // Export Dossier Markdown download
-  btnExportDossier.addEventListener("click", () => {
-    if (currentTicker) {
-      window.location.href = `/api/dossier/${currentTicker}`;
+  // Keyboard navigation for search dropdown
+  tickerInput.addEventListener("keydown", (e) => {
+    const items = searchDropdown.querySelectorAll(".search-item");
+    if (searchDropdown.classList.contains("hidden") || items.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      selectedDropdownIndex = (selectedDropdownIndex + 1) % items.length;
+      updateDropdownSelection(items);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      selectedDropdownIndex = (selectedDropdownIndex - 1 + items.length) % items.length;
+      updateDropdownSelection(items);
+    } else if (e.key === "Enter" && selectedDropdownIndex >= 0) {
+      e.preventDefault();
+      const selected = items[selectedDropdownIndex];
+      const ticker = selected.getAttribute("data-ticker");
+      tickerInput.value = ticker;
+      searchDropdown.classList.add("hidden");
+      runAnalysis(ticker);
+    } else if (e.key === "Escape") {
+      searchDropdown.classList.add("hidden");
     }
   });
 
-  // Screener preset buttons
-  screenerPills.forEach(pill => {
-    pill.addEventListener("click", () => {
-      screenerPills.forEach(p => p.classList.remove("active"));
-      pill.classList.add("active");
-      const preset = pill.getAttribute("data-preset");
-      loadScreener(preset);
+  function updateDropdownSelection(items) {
+    items.forEach((item, idx) => {
+      if (idx === selectedDropdownIndex) {
+        item.classList.add("selected");
+        item.scrollIntoView({ block: "nearest" });
+      } else {
+        item.classList.remove("selected");
+      }
     });
+  }
+
+  function renderSearchDropdown(matches) {
+    searchDropdown.innerHTML = "";
+    selectedDropdownIndex = -1;
+
+    if (matches.length === 0) {
+      searchDropdown.classList.add("hidden");
+      return;
+    }
+
+    matches.forEach(item => {
+      const div = document.createElement("div");
+      div.className = "search-item";
+      div.setAttribute("data-ticker", item.ticker);
+      div.innerHTML = `
+        <div class="item-left">
+          <span class="item-ticker">${item.ticker}</span>
+          <span class="item-name">${item.name}</span>
+        </div>
+        <span class="item-sector">${item.sector || ''}</span>
+      `;
+
+      div.addEventListener("click", () => {
+        tickerInput.value = item.ticker;
+        searchDropdown.classList.add("hidden");
+        runAnalysis(item.ticker);
+      });
+
+      searchDropdown.appendChild(div);
+    });
+
+    searchDropdown.classList.remove("hidden");
+  }
+
+  // Close dropdown on outside click
+  document.addEventListener("click", (e) => {
+    if (!tickerForm.contains(e.target)) {
+      searchDropdown.classList.add("hidden");
+    }
   });
 
   // Form submit
   tickerForm.addEventListener("submit", (e) => {
     e.preventDefault();
+    searchDropdown.classList.add("hidden");
     const ticker = tickerInput.value.trim().toUpperCase();
     if (ticker) {
       runAnalysis(ticker);
     }
   });
 
-  // Number formatting helpers
+  // Export Dossier Markdown
+  btnExportDossier.addEventListener("click", () => {
+    if (currentTicker) {
+      window.location.href = `/api/dossier/${currentTicker}`;
+    }
+  });
+
+  // Export JSON Data
+  btnExportJson.addEventListener("click", () => {
+    if (!currentReportData) return;
+    const blob = new Blob([JSON.stringify(currentReportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${currentTicker}_FORENSIC_DATA.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // Screener preset buttons
+  presetBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      presetBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const preset = btn.getAttribute("data-preset");
+      loadScreener(preset);
+    });
+  });
+
+  // Formatting helpers
   function formatMoney(num) {
     if (num === null || num === undefined) return "N/A";
     const abs = Math.abs(num);
@@ -84,24 +188,24 @@ document.addEventListener("DOMContentLoaded", () => {
     if (abs >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
     if (abs >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
     if (abs >= 1e3) return `$${(num / 1e3).toFixed(2)}K`;
-    return `$${num.toFixed(2)}`;
+    return `$${Number(num).toFixed(2)}`;
   }
 
-  // Load and render analysis
+  // Core Analysis Runner
   async function runAnalysis(ticker) {
     currentTicker = ticker.toUpperCase();
-    loadingOverlay.classList.remove("hidden");
+    loadingCurtain.classList.remove("hidden");
     try {
       const resp = await fetch(`/api/analyze/${currentTicker}`);
       if (!resp.ok) {
-        throw new Error(`Failed to fetch report for ${currentTicker}`);
+        throw new Error(`Failed to load report for ${currentTicker}`);
       }
-      const data = await resp.json();
-      renderDashboard(data);
+      currentReportData = await resp.json();
+      renderDashboard(currentReportData);
     } catch (err) {
-      alert(`Error loading analysis: ${err.message}`);
+      alert(`Forensic Engine Error: ${err.message}`);
     } finally {
-      loadingOverlay.classList.add("hidden");
+      loadingCurtain.classList.add("hidden");
     }
   }
 
@@ -110,18 +214,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const forensics = data.forensics || {};
     const riskScore = data.risk_score || 0;
 
-    // 1. Hero HUD
+    // 1. HUD Strip
     document.getElementById("hud-ticker").textContent = data.ticker || "UNKNOWN";
     document.getElementById("hud-name").textContent = mkt.name || data.ticker;
     document.getElementById("hud-cik").textContent = `CIK: ${data.cik || 'N/A'}`;
-    document.getElementById("hud-sector").textContent = `Sector: ${mkt.sector || 'N/A'}`;
-    document.getElementById("hud-industry").textContent = `Industry: ${mkt.industry || 'N/A'}`;
+    document.getElementById("hud-sector").textContent = mkt.sector || 'N/A';
+    document.getElementById("hud-industry").textContent = mkt.industry || 'N/A';
 
     document.getElementById("hud-price").textContent = `$${(mkt.current_price || 0).toFixed(2)}`;
     const chgEl = document.getElementById("hud-change");
     const chg = mkt.change_pct || 0;
     chgEl.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`;
-    chgEl.className = `price-change-pill ${chg >= 0 ? 'positive' : 'negative'}`;
+    chgEl.className = `delta-badge ${chg >= 0 ? 'positive' : 'negative'}`;
 
     document.getElementById("hud-mcap").textContent = formatMoney(mkt.market_cap);
     document.getElementById("hud-pe").textContent = mkt.trailing_pe ? mkt.trailing_pe.toFixed(1) : "N/A";
@@ -138,69 +242,69 @@ document.addEventListener("DOMContentLoaded", () => {
     riskFill.style.width = `${riskScore}%`;
 
     let riskClass = "low";
-    let verdictText = "LOW / AUDITED HEALTH";
+    let verdictText = "AUDITED / STABLE ACCOUNTING";
     if (riskScore >= 60) {
       riskClass = "high";
-      verdictText = "CRITICAL / FORENSIC RED FLAGS";
+      verdictText = "CRITICAL / FORENSIC RED FLAGS SURFACED";
     } else if (riskScore >= 30) {
       riskClass = "medium";
-      verdictText = "MODERATE SCRUTINY & RISKS";
+      verdictText = "MODERATE SCRUTINY & ACCOUNTING FRICTION";
     }
 
-    riskBadge.className = `risk-score-badge ${riskClass}`;
+    riskBadge.className = `risk-value ${riskClass}`;
     riskFill.className = `risk-bar-fill ${riskClass}`;
     riskVerdict.textContent = verdictText;
 
-    // 2. TAB 1: Quantitative Models
+    // 2. Tab 01: Forensic Models
     // Beneish
     const b = forensics.beneish_m_score;
     const bScore = document.getElementById("beneish-score");
     const bStatus = document.getElementById("beneish-status");
-    const bVars = document.getElementById("beneish-vars");
-    bVars.innerHTML = "";
+    const bTable = document.querySelector("#beneish-table tbody");
+    bTable.innerHTML = "";
 
     if (b) {
       bScore.textContent = b.score;
-      bScore.className = `metric-value ${b.is_manipulator ? 'red' : 'green'}`;
+      bScore.className = `score-num ${b.is_manipulator ? 'red' : 'green'}`;
       bStatus.textContent = b.status;
-      bStatus.className = `model-badge ${b.is_manipulator ? 'badge-red' : 'badge-green'}`;
+      bStatus.className = `assessment-banner ${b.is_manipulator ? 'red' : 'green'}`;
 
       if (b.variables) {
         for (const [k, v] of Object.entries(b.variables)) {
-          bVars.innerHTML += `
-            <div class="var-row">
-              <span class="var-label">${k}</span>
-              <span class="var-val">${v}</span>
-            </div>
+          bTable.innerHTML += `
+            <tr>
+              <td>${k}</td>
+              <td class="num">${v}</td>
+            </tr>
           `;
         }
       }
     } else {
       bScore.textContent = "N/A";
-      bStatus.textContent = "Insufficient Historical Filings";
+      bStatus.textContent = "INSUFFICIENT HISTORICAL DATA";
     }
 
     // Altman Z
     const z = forensics.altman_z_score;
     const zScore = document.getElementById("altman-score");
     const zStatus = document.getElementById("altman-status");
-    const zVars = document.getElementById("altman-vars");
-    zVars.innerHTML = "";
+    const zTable = document.querySelector("#altman-table tbody");
+    zTable.innerHTML = "";
 
     if (z) {
       zScore.textContent = z.score;
       const zClass = z.risk_level === 'low' ? 'green' : (z.risk_level === 'medium' ? 'yellow' : 'red');
-      zScore.className = `metric-value ${zClass}`;
+      zScore.className = `score-num ${zClass}`;
       zStatus.textContent = z.zone;
-      zStatus.className = `model-badge badge-${zClass}`;
+      zStatus.className = `assessment-banner ${zClass}`;
 
       if (z.components) {
         for (const [k, v] of Object.entries(z.components)) {
-          zVars.innerHTML += `
-            <div class="var-row">
-              <span class="var-label">${k}</span>
-              <span class="var-val">${v}</span>
-            </div>
+          zTable.innerHTML += `
+            <tr>
+              <td>${k}</td>
+              <td class="num">${v}</td>
+            </tr>
           `;
         }
       }
@@ -213,23 +317,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const f = forensics.piotroski_f_score;
     const fScore = document.getElementById("piotroski-score");
     const fStatus = document.getElementById("piotroski-status");
-    const fVars = document.getElementById("piotroski-vars");
-    fVars.innerHTML = "";
+    const fTable = document.querySelector("#piotroski-table tbody");
+    fTable.innerHTML = "";
 
     if (f) {
       fScore.textContent = `${f.score} / ${f.max_score}`;
       const fClass = f.score >= 7 ? 'green' : (f.score >= 5 ? 'yellow' : 'red');
-      fScore.className = `metric-value ${fClass}`;
+      fScore.className = `score-num ${fClass}`;
       fStatus.textContent = f.rating;
-      fStatus.className = `model-badge badge-${fClass}`;
+      fStatus.className = `assessment-banner ${fClass}`;
 
       if (f.signals) {
         for (const [k, v] of Object.entries(f.signals)) {
-          fVars.innerHTML += `
-            <div class="var-row">
-              <span class="var-label">${k}</span>
-              <span class="var-val" style="color: ${v === 1 ? 'var(--accent-green)' : 'var(--accent-red)'}">${v === 1 ? '✓ PASS' : '✗ FAIL'}</span>
-            </div>
+          fTable.innerHTML += `
+            <tr>
+              <td>${k}</td>
+              <td class="num" style="color: ${v === 1 ? 'var(--signal-green)' : 'var(--signal-red)'}">${v === 1 ? 'PASS' : 'FAIL'}</td>
+            </tr>
           `;
         }
       }
@@ -238,29 +342,29 @@ document.addEventListener("DOMContentLoaded", () => {
       fStatus.textContent = "N/A";
     }
 
-    // Anomalies Feed
+    // 3. Tab 02: Anomalies
     const anoContainer = document.getElementById("anomalies-container");
     const anoPill = document.getElementById("anomaly-count-pill");
     const anomalies = forensics.anomalies || [];
-    anoPill.textContent = `${anomalies.length} ALERTS`;
+    anoPill.textContent = `${anomalies.length} FLAGGED`;
+    anoPill.className = `pill-badge ${anomalies.length > 0 ? 'red' : 'green'}`;
     anoContainer.innerHTML = "";
 
     if (anomalies.length === 0) {
       anoContainer.innerHTML = `
-        <div style="color: var(--accent-green); padding: 12px; background: rgba(0, 230, 118, 0.05); border: 1px solid rgba(0,230,118,0.2); border-radius: 4px; font-size: 12px;">
-          ✓ No significant balance sheet decoupling or cash flow divergences detected.
+        <div style="color: var(--signal-green); font-family: var(--font-mono); font-size: 11px; padding: 12px; border: 1px solid rgba(16,185,129,0.2);">
+          [VERIFIED] No severe balance sheet decoupling or operating cash flow divergences detected.
         </div>
       `;
     } else {
       anomalies.forEach(a => {
         anoContainer.innerHTML += `
           <div class="anomaly-item ${a.severity}">
-            <div class="anomaly-top">
-              <span class="anomaly-title">${a.title}</span>
-              <span class="anomaly-sev ${a.severity}">${a.severity}</span>
+            <div class="anomaly-title-row">
+              <span class="anomaly-name">${a.title}</span>
+              <span class="anomaly-metric-callout">${a.metric || ''}</span>
             </div>
-            <div class="anomaly-desc">${a.description}</div>
-            <div class="anomaly-metric">${a.metric || ''}</div>
+            <div class="anomaly-text">${a.description}</div>
           </div>
         `;
       });
@@ -273,16 +377,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (regFlags.length === 0) {
       regContainer.innerHTML = `
-        <div style="color: var(--text-muted); font-size: 11px; padding: 6px 0;">
-          No critical disclosure phrases (subpoena, material weakness, restatement) surfaced in latest section scans.
+        <div style="color: var(--text-muted); font-size: 11px; padding: 8px 0;">
+          No critical litigation, subpoena, or restatement triggers surfaced in recent section scans.
         </div>
       `;
     } else {
       regFlags.forEach(rf => {
         regContainer.innerHTML += `
           <div class="reg-item">
-            <div class="reg-title">⚠️ ${rf.title}</div>
-            <div class="reg-excerpt">${rf.excerpt}</div>
+            <div class="reg-tag">[SEC 10-K DISCLOSURE] ${rf.title}</div>
+            <div class="reg-quote">${rf.excerpt}</div>
           </div>
         `;
       });
@@ -291,18 +395,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // Sentiment
     const s = forensics.sentiment;
     if (s) {
-      document.getElementById("sentiment-tone").textContent = s.tone || "BALANCED";
-      document.getElementById("sent-unc").style.width = `${Math.min(100, (s.uncertainty_pct || 0) * 20)}%`;
       document.getElementById("sent-unc-val").textContent = `${s.uncertainty_pct}%`;
-      document.getElementById("sent-lit").style.width = `${Math.min(100, (s.litigious_pct || 0) * 20)}%`;
       document.getElementById("sent-lit-val").textContent = `${s.litigious_pct}%`;
-      document.getElementById("sent-neg").style.width = `${Math.min(100, (s.negative_pct || 0) * 20)}%`;
       document.getElementById("sent-neg-val").textContent = `${s.negative_pct}%`;
-      document.getElementById("sent-pos").style.width = `${Math.min(100, (s.positive_pct || 0) * 20)}%`;
       document.getElementById("sent-pos-val").textContent = `${s.positive_pct}%`;
     }
 
-    // 3. TAB 2: Filing Diff
+    // 4. Tab 03: 10-K Diff
     const diff = data.diff_analysis;
     const addedList = document.getElementById("diff-added-list");
     const removedList = document.getElementById("diff-removed-list");
@@ -311,22 +410,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (diff) {
       document.getElementById("diff-sim").textContent = `Similarity: ${diff.similarity_pct}%`;
-      document.getElementById("diff-added-count").textContent = `+${diff.added_count} Added Sentences`;
-      document.getElementById("diff-removed-count").textContent = `-${diff.removed_count} Removed Sentences`;
+      document.getElementById("diff-added-count").textContent = `+${diff.added_count} Added`;
+      document.getElementById("diff-removed-count").textContent = `-${diff.removed_count} Struck`;
 
       (diff.sample_added || []).forEach(sentence => {
-        addedList.innerHTML += `<div class="diff-sentence added">+ ${sentence}</div>`;
+        addedList.innerHTML += `<div class="diff-entry add">+ ${sentence}</div>`;
       });
 
       (diff.sample_removed || []).forEach(sentence => {
-        removedList.innerHTML += `<div class="diff-sentence removed">- ${sentence}</div>`;
+        removedList.innerHTML += `<div class="diff-entry del">- ${sentence}</div>`;
       });
     } else {
-      addedList.innerHTML = "<div style='color:var(--text-muted); padding: 10px;'>No prior 10-K diff available.</div>";
-      removedList.innerHTML = "<div style='color:var(--text-muted); padding: 10px;'>No prior 10-K diff available.</div>";
+      addedList.innerHTML = "<div style='color:var(--text-muted); padding: 10px;'>No prior 10-K text diff available.</div>";
+      removedList.innerHTML = "<div style='color:var(--text-muted); padding: 10px;'>No prior 10-K text diff available.</div>";
     }
 
-    // 4. TAB 3: DuPont ROE Decomposition
+    // 5. Tab 04: DuPont ROE
     const dupontList = data.dupont_series || [];
     const dupontTbody = document.querySelector("#dupont-table tbody");
     dupontTbody.innerHTML = "";
@@ -336,13 +435,13 @@ document.addEventListener("DOMContentLoaded", () => {
         dupontTbody.innerHTML += `
           <tr>
             <td><strong>FY ${d.fiscal_year}</strong></td>
-            <td style="color: var(--accent-cyan); font-weight: 700;">${d.roe_pct}%</td>
-            <td>${d.roa_pct}%</td>
-            <td>${d.net_profit_margin_pct}%</td>
-            <td>${d.operating_margin_pct}%</td>
-            <td>${d.asset_turnover}x</td>
-            <td>${d.equity_multiplier}x</td>
-            <td style="color: ${d.quality_verdict.includes('HIGH') ? 'var(--accent-green)' : (d.quality_verdict.includes('LEVERAGE') ? 'var(--accent-red)' : 'var(--text-secondary)')}; font-weight: 600;">
+            <td class="num" style="color: var(--text-primary); font-weight: 700;">${d.roe_pct}%</td>
+            <td class="num">${d.roa_pct}%</td>
+            <td class="num">${d.net_profit_margin_pct}%</td>
+            <td class="num">${d.operating_margin_pct}%</td>
+            <td class="num">${d.asset_turnover}x</td>
+            <td class="num">${d.equity_multiplier}x</td>
+            <td style="color: ${d.quality_verdict.includes('HIGH') ? 'var(--signal-green)' : (d.quality_verdict.includes('LEVERAGE') ? 'var(--signal-red)' : 'var(--text-secondary)')}; font-weight: 600;">
               ${d.quality_verdict}
             </td>
           </tr>
@@ -352,15 +451,15 @@ document.addEventListener("DOMContentLoaded", () => {
       dupontTbody.innerHTML = "<tr><td colspan='8'>No DuPont decomposition records available.</td></tr>";
     }
 
-    // 5. TAB 4: Form 4 Insider Radar
+    // 6. Tab 05: Form 4 Insiders
     const insider = data.insider_activity || {};
     const insiderBadge = document.getElementById("insider-sentiment-badge");
     const insiderTbody = document.querySelector("#insiders-table tbody");
     insiderTbody.innerHTML = "";
 
     insiderBadge.textContent = insider.sentiment || "NEUTRAL";
-    const sentClass = (insider.sentiment || '').includes("SELLING") ? "red" : ((insider.sentiment || '').includes("ACCUMULATION") ? "green" : "");
-    insiderBadge.className = `stat-badge ${sentClass}`;
+    const isSelling = (insider.sentiment || '').includes("SELLING");
+    insiderBadge.className = `pill-badge ${isSelling ? 'red' : 'green'}`;
 
     const trades = insider.trades || [];
     if (trades.length > 0) {
@@ -370,12 +469,12 @@ document.addEventListener("DOMContentLoaded", () => {
           <tr>
             <td>${t.transaction_date}</td>
             <td><strong>${t.owner}</strong></td>
-            <td style="color: var(--text-secondary);">${t.title}</td>
-            <td><span class="anomaly-sev ${isBuy ? 'MEDIUM' : 'HIGH'}" style="background: ${isBuy ? 'rgba(0,230,118,0.2)' : 'rgba(255,56,92,0.2)'}; color: ${isBuy ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 700;">${t.transaction_type}</span></td>
-            <td>${t.shares.toLocaleString()}</td>
-            <td>${t.price_per_share > 0 ? '$' + t.price_per_share.toFixed(2) : '-'}</td>
-            <td style="color: #FFF; font-weight: 600;">${formatMoney(t.total_value)}</td>
-            <td><a href="${t.filing_url}" target="_blank" rel="noopener noreferrer" class="edgar-link">Form 4 ↗</a></td>
+            <td>${t.title}</td>
+            <td><span class="pill-badge ${isBuy ? 'green' : 'red'}">${t.transaction_type}</span></td>
+            <td class="num">${t.shares.toLocaleString()}</td>
+            <td class="num">${t.price_per_share > 0 ? '$' + t.price_per_share.toFixed(2) : '-'}</td>
+            <td class="num" style="color: var(--text-primary); font-weight: 700;">${formatMoney(t.total_value)}</td>
+            <td><a href="${t.filing_url}" target="_blank" rel="noopener noreferrer" style="color: var(--signal-cyan); text-decoration: none;">Form 4 ↗</a></td>
           </tr>
         `;
       });
@@ -383,18 +482,18 @@ document.addEventListener("DOMContentLoaded", () => {
       insiderTbody.innerHTML = "<tr><td colspan='8'>No recent Form 4 insider transactions recorded.</td></tr>";
     }
 
-    // 6. TAB 6: Audited Financials
+    // 7. Tab 07: Audited Financials
     const finSeries = data.financial_series || [];
     const finTable = document.getElementById("financials-table");
     const thead = finTable.querySelector("thead tr");
     const tbody = finTable.querySelector("tbody");
     
-    thead.innerHTML = "<th>Financial Metric (USD)</th>";
+    thead.innerHTML = "<th>GAAP Line Item (USD)</th>";
     tbody.innerHTML = "";
 
     if (finSeries.length > 0) {
       finSeries.forEach(item => {
-        thead.innerHTML += `<th>FY ${item.fiscal_year}</th>`;
+        thead.innerHTML += `<th class="num">FY ${item.fiscal_year}</th>`;
       });
 
       const metricsToDisplay = [
@@ -414,7 +513,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let rowHtml = `<td><strong>${m.label}</strong></td>`;
         finSeries.forEach(item => {
           const val = item[m.key];
-          rowHtml += `<td>${formatMoney(val)}</td>`;
+          rowHtml += `<td class="num">${formatMoney(val)}</td>`;
         });
         tbody.innerHTML += `<tr>${rowHtml}</tr>`;
       });
@@ -422,7 +521,7 @@ document.addEventListener("DOMContentLoaded", () => {
       tbody.innerHTML = "<tr><td colspan='5'>No XBRL financial statement records found.</td></tr>";
     }
 
-    // 7. TAB 7: Official EDGAR Archive
+    // 8. Tab 08: SEC Archive
     const filingsList = (data.filings && data.filings.all_recent) || [];
     const filingsTbody = document.querySelector("#filings-table tbody");
     filingsTbody.innerHTML = "";
@@ -431,12 +530,12 @@ document.addEventListener("DOMContentLoaded", () => {
       filingsList.forEach(f => {
         filingsTbody.innerHTML += `
           <tr>
-            <td><strong style="color: var(--accent-cyan);">${f.form}</strong></td>
+            <td><strong>${f.form}</strong></td>
             <td>${f.filing_date}</td>
             <td>${f.report_date || f.filing_date}</td>
             <td style="font-family: var(--font-mono); font-size: 11px;">${f.accession_number}</td>
-            <td style="color: var(--text-secondary); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${f.primary_document}</td>
-            <td><a href="${f.url}" target="_blank" rel="noopener noreferrer" class="edgar-link">View SEC Filing ↗</a></td>
+            <td style="color: var(--text-muted); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${f.primary_document}</td>
+            <td><a href="${f.url}" target="_blank" rel="noopener noreferrer" style="color: var(--signal-cyan); text-decoration: none;">View Archive ↗</a></td>
           </tr>
         `;
       });
@@ -448,7 +547,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Load Batch Screener
   async function loadScreener(preset) {
     const tbody = document.querySelector("#screener-table tbody");
-    tbody.innerHTML = "<tr><td colspan='9' style='text-align:center; padding: 20px; color: var(--accent-cyan);'>Screening EDGAR archives for watchlist...</td></tr>";
+    tbody.innerHTML = "<tr><td colspan='9' style='text-align:center; padding: 24px; color: var(--text-muted); font-family: var(--font-mono);'>Interrogating SEC EDGAR facts across watchlist...</td></tr>";
 
     try {
       const resp = await fetch(`/api/screen?preset=${preset}`);
@@ -459,28 +558,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
       results.forEach((r, idx) => {
         const risk = r.risk_score;
-        const riskColor = risk >= 60 ? "var(--accent-red)" : (risk >= 30 ? "var(--accent-amber)" : "var(--accent-green)");
-        const bColor = r.is_manipulator ? "var(--accent-red)" : "var(--accent-green)";
+        const riskColor = risk >= 60 ? "var(--signal-red)" : (risk >= 30 ? "var(--signal-amber)" : "var(--signal-green)");
+        const bColor = r.is_manipulator ? "var(--signal-red)" : "var(--signal-green)";
 
-        tbody.innerHTML += `
-          <tr style="cursor: pointer;" onclick="document.getElementById('ticker-input').value='${r.ticker}'; document.getElementById('ticker-form').dispatchEvent(new Event('submit')); document.querySelector('[data-tab=\\'tab-forensics\\']').click();">
-            <td><strong>#${idx + 1}</strong></td>
-            <td><strong style="color: var(--accent-cyan);">${r.ticker}</strong></td>
-            <td>${r.name}</td>
-            <td>$${r.price.toFixed(2)}</td>
-            <td style="color: ${riskColor}; font-weight: 700;">${risk} / 100</td>
-            <td style="color: ${bColor}; font-weight: 600;">${r.beneish_score || 'N/A'}</td>
-            <td>${r.altman_score || 'N/A'}</td>
-            <td>${r.piotroski_score ? r.piotroski_score + '/9' : 'N/A'}</td>
-            <td>${r.anomalies_count > 0 ? '<span style="color:var(--accent-red); font-weight:700;">' + r.anomalies_count + ' Flags</span>' : '<span style="color:var(--accent-green);">0</span>'}</td>
-          </tr>
+        const tr = document.createElement("tr");
+        tr.className = "clickable";
+        tr.innerHTML = `
+          <td>#${idx + 1}</td>
+          <td><strong style="color: var(--text-primary); font-family: var(--font-mono);">${r.ticker}</strong></td>
+          <td>${r.name}</td>
+          <td class="num">$${r.price.toFixed(2)}</td>
+          <td class="num" style="color: ${riskColor}; font-weight: 700;">${risk} / 100</td>
+          <td class="num" style="color: ${bColor}; font-weight: 600;">${r.beneish_score || 'N/A'}</td>
+          <td class="num">${r.altman_score || 'N/A'}</td>
+          <td class="num">${r.piotroski_score ? r.piotroski_score + '/9' : 'N/A'}</td>
+          <td class="num">${r.anomalies_count > 0 ? '<span style="color:var(--signal-red); font-weight:700;">' + r.anomalies_count + ' FLAGGED</span>' : '<span style="color:var(--signal-green);">CLEAN</span>'}</td>
         `;
+
+        tr.addEventListener("click", () => {
+          tickerInput.value = r.ticker;
+          runAnalysis(r.ticker);
+          document.querySelector('[data-tab="tab-models"]').click();
+        });
+
+        tbody.appendChild(tr);
       });
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan='9' style='color:var(--accent-red);'>Error running screener: ${err.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan='9' style='color:var(--signal-red);'>Screener Error: ${err.message}</td></tr>`;
     }
   }
 
-  // Initial load with default NVDA
+  // Initial load
   runAnalysis("NVDA");
 });

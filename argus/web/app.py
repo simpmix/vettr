@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from argus.engine import ArgusEngine
 from argus.market.provider import MarketDataProvider
 from argus.screener import ArgusScreener, PRESET_WATCHLISTS
+from argus.data.tickers import search_securities
 from argus.config import SERVER_HOST, SERVER_PORT
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,11 @@ def serve_index():
     if index_file.exists():
         return FileResponse(index_file)
     return {"message": "ARGUS Terminal API online. Static frontend not found."}
+
+@app.get("/api/search")
+def search_tickers(q: str = ""):
+    """Instant search across pre-indexed securities database."""
+    return search_securities(q)
 
 @app.get("/api/analyze/{ticker}")
 def analyze_ticker(ticker: str):
