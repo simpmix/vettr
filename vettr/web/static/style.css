@@ -71,7 +71,15 @@ body.terminal-body {
 .matrix-cell,
 .matrix-header-num,
 .calibri-num,
-.t-num {
+.t-num,
+.tt-metrics strong,
+.tt-metrics span.num,
+.chart-range-stats,
+.tape-price,
+.tape-chg,
+.sec-modal-acc,
+.chart-price-label,
+.chart-date-label {
   font-family: var(--font-calibri) !important;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
@@ -307,6 +315,21 @@ body.terminal-body {
   background: #E2E8F0;
 }
 
+.btn-action.sec-table-btn {
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-cyan);
+  border-color: var(--color-cyan-border);
+  background: var(--bg-card);
+}
+
+.btn-action.sec-table-btn:hover {
+  background: var(--color-cyan-bg);
+  color: #FFFFFF;
+  border-color: var(--color-cyan);
+}
+
 /* Live Stock Exchange Ticker Tape */
 .exchange-ticker-bar {
   background: var(--bg-card);
@@ -405,6 +428,71 @@ body.terminal-body {
 .tape-sep {
   color: var(--border-subtle);
   user-select: none;
+}
+
+/* Quick Navigation & Watchlist Pills Bar */
+.quick-nav-bar {
+  background: var(--bg-app);
+  border-bottom: 1px solid var(--border-subtle);
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  gap: 20px;
+  font-size: 11px;
+}
+
+.quick-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.quick-nav-group::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-nav-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.quick-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pill-ticker-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.pill-ticker-btn:hover {
+  background: var(--bg-muted);
+  border-color: var(--color-cyan-border);
+  color: #FFFFFF;
+}
+
+.pill-ticker-btn.recent {
+  border-color: rgba(56, 189, 248, 0.32);
+  color: var(--color-cyan);
 }
 
 /* Main Container */
@@ -626,6 +714,190 @@ body.terminal-body {
   font-size: 12px;
   color: var(--text-secondary);
   line-height: 1.5;
+}
+
+/* Interactive Financial OHLCV Trajectory & Volume Chart */
+.hud-chart-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  position: relative;
+}
+
+.chart-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 18px;
+  background: rgba(255, 255, 255, 0.015);
+  border-bottom: 1px solid var(--border-subtle);
+  height: 38px;
+}
+
+.chart-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chart-indicator-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--color-cyan);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--color-cyan);
+}
+
+.chart-title-text {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.chart-range-stats {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.chart-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chart-tf-buttons {
+  display: inline-flex;
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.chart-tf-btn {
+  background: var(--bg-card);
+  border: none;
+  border-right: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.chart-tf-btn:last-child {
+  border-right: none;
+}
+
+.chart-tf-btn:hover {
+  color: var(--text-main);
+  background: var(--bg-muted);
+}
+
+.chart-tf-btn.active {
+  background: var(--color-cyan-bg);
+  color: var(--color-cyan);
+}
+
+.chart-btn-toggle {
+  background: var(--bg-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.chart-btn-toggle:hover {
+  border-color: var(--color-cyan-border);
+  color: #FFFFFF;
+}
+
+.chart-canvas-container {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  padding: 12px 18px;
+  background: var(--bg-card);
+}
+
+.financial-svg-chart {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.chart-grid line {
+  stroke: rgba(255, 255, 255, 0.04);
+  stroke-dasharray: 2, 2;
+}
+
+.chart-volume rect {
+  transition: opacity 0.12s ease;
+}
+
+.chart-candles line, .chart-candles rect {
+  shape-rendering: crispEdges;
+}
+
+.chart-tooltip {
+  position: absolute;
+  top: 14px;
+  left: 20px;
+  background: rgba(14, 16, 20, 0.94);
+  border: 1px solid var(--border-focus);
+  backdrop-filter: blur(8px);
+  padding: 6px 12px;
+  border-radius: 4px;
+  pointer-events: none;
+  font-size: 11px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  transition: opacity 0.1s ease;
+}
+
+.chart-tooltip.hidden {
+  display: none;
+}
+
+.tt-date {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-cyan);
+  border-right: 1px solid var(--border-subtle);
+  padding-right: 10px;
+}
+
+.tt-metrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tt-metrics.secondary {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.tt-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 /* Modern Minimalist Navigation Tabs */
@@ -1288,17 +1560,213 @@ body.terminal-body {
   100% { transform: translateX(300%); }
 }
 
-/* Clean Minimal Footer */
+/* In-Terminal SEC Document Reader Modal */
+.sec-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 5, 7, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.sec-modal-backdrop.hidden {
+  display: none;
+}
+
+.sec-modal-container {
+  width: 94%;
+  max-width: 1240px;
+  height: 86vh;
+  background: var(--bg-card);
+  border: 1px solid var(--border-medium);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.sec-modal-header {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: var(--bg-app);
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 16px;
+}
+
+.sec-modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.sec-modal-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: var(--color-cyan-bg);
+  border: 1px solid var(--color-cyan-border);
+  color: var(--color-cyan);
+  white-space: nowrap;
+}
+
+.sec-modal-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sec-modal-acc {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.sec-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sec-modal-actions .btn-action.sec-link {
+  color: var(--color-cyan);
+  border-color: var(--color-cyan-border);
+  text-decoration: none;
+}
+
+.sec-modal-toolbar {
+  height: 38px;
+  background: #0A0C0F;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  gap: 16px;
+}
+
+.sec-modal-toolbar input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-main);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  width: 100%;
+}
+
+.sec-modal-toolbar input::placeholder {
+  color: var(--text-muted);
+}
+
+.sec-modal-status {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.sec-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background: #08090B;
+  position: relative;
+}
+
+.modal-loading-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--color-cyan);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.modal-loading-box.hidden {
+  display: none;
+}
+
+.sec-content-pre {
+  font-family: var(--font-code);
+  font-size: 12px;
+  line-height: 1.6;
+  color: #CBD5E1;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Enhanced Institutional Footer */
 .terminal-footer {
   background: var(--bg-card);
   border-top: 1px solid var(--border-subtle);
-  height: 40px;
+  height: 42px;
   padding: 0 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-size: 11px;
   color: var(--text-muted);
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-brand {
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+}
+
+.footer-dim {
+  color: var(--text-muted);
+}
+
+.footer-sep {
+  color: var(--border-subtle);
+}
+
+.footer-hotkeys {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hotkey-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.hotkey-pill kbd {
+  background: #14171D;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--color-cyan);
+  font-family: var(--font-code);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 3px;
 }
 
 /* Institutional Print Media Stylesheet */

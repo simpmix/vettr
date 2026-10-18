@@ -68,10 +68,22 @@ Institutional financial platforms like Bloomberg, FactSet, and AlphaSense charge
     * Interactive 3x3 Sensitivity Matrix across variable WACC Discount Rates (8%, 10%, 12%) and Terminal Growth (2%, 3%, 4%).
 
 11. **Head-to-Head Peer Comparison & Screener**
-    * Side-by-side benchmarking of multiple equities with ranked risk scoring.
+    * Side-by-side benchmarking of multiple equities with ranked risk scoring across 9 sector presets.
 
 12. **Institutional Dual Export & Print Memorandums**
     * 1-Click generation of publication-ready Due Diligence Memorandums in Markdown, structured GAAP financial data in CSV/JSON, and clean PDF report formatting.
+
+13. **Continuous Stock Exchange Pulse & Live Ticker Tape**
+    * 15-second background polling of market indices (`SPY`, `QQQ`, `DIA`, `IWM`, `^VIX`) and active volume leaders with real-time delta badges and ticker-click switching.
+
+14. **Interactive High-DPI Vector OHLCV Trajectory & Volume Chart**
+    * Lightweight, zero-dependency SVG financial chart with customizable horizons (1M, 3M, 6M, 1Y, 5Y), volume accumulation histogram, and interactive hover crosshair inspection.
+
+15. **In-Terminal SEC EDGAR Document Reader Modal**
+    * Stream, view, and live-filter Form 10-K, Form 8-K, and Form 4 documents right inside the terminal without losing your workstation context or wrestling with slow government archives.
+
+16. **Pro Financial Hotkeys & Universal Company Index**
+    * Complete index of all 10,443 U.S. public equities with instant fuzzy autocomplete, alongside institutional hotkeys (`/` search, `1-9` tabs, `C` copy brief, `P` print PDF, `M` toggle chart, `Esc` close modal).
 
 ---
 

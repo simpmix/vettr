@@ -64,6 +64,41 @@ def analyze_ticker(ticker: str):
         logger.error(f"Error analyzing {ticker}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/chart/{ticker}")
+def get_chart_data(ticker: str, period: str = "6mo", interval: str = "1d"):
+    """Fetches historical price candles and volume for interactive charting."""
+    try:
+        clean_ticker = ticker.strip().upper()
+        candles = MarketDataProvider.get_historical_candles(clean_ticker, period=period, interval=interval)
+        return {"ticker": clean_ticker, "period": period, "candles": candles}
+    except Exception as e:
+        logger.error(f"Error fetching chart for {ticker}: {e}")
+        return {"ticker": ticker.upper(), "period": period, "candles": []}
+
+@app.get("/api/sec-doc")
+def get_sec_document(url: str):
+    """Safely proxies and caches SEC filing document text/HTML for in-terminal reading."""
+    try:
+        if not url or not url.startswith("https://www.sec.gov/"):
+            raise HTTPException(status_code=400, detail="Invalid SEC archive URL")
+        
+        content = engine.edgar.fetch_filing_content(url)
+        # Cap at 600KB for responsive in-browser rendering
+        is_truncated = False
+        if len(content) > 600_000:
+            content = content[:600_000]
+            is_truncated = True
+
+        return {
+            "url": url,
+            "truncated": is_truncated,
+            "length": len(content),
+            "content": content
+        }
+    except Exception as e:
+        logger.error(f"Error fetching SEC doc {url}: {e}")
+        return {"url": url, "error": str(e), "content": f"Unable to fetch SEC document: {e}"}
+
 @app.get("/api/compare")
 def compare_tickers(tickers: str = "NVDA,AMD,INTC"):
     """Side-by-side comparison of 2 to 4 tickers."""

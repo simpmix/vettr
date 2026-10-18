@@ -45,12 +45,44 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Global hotkey '/' to focus search
+  // Global Institutional Keyboard Hotkeys
   document.addEventListener("keydown", (e) => {
-    if (e.key === "/" && document.activeElement !== tickerInput && document.activeElement !== compareInput) {
+    // Esc closes modal or search dropdown
+    if (e.key === "Escape") {
+      closeSecModal();
+      searchDropdown.classList.add("hidden");
+      return;
+    }
+
+    const isInputFocused = document.activeElement === tickerInput ||
+                           document.activeElement === compareInput ||
+                           (document.getElementById("modal-filter-input") && document.activeElement === document.getElementById("modal-filter-input"));
+
+    if (e.key === "/" && !isInputFocused) {
       e.preventDefault();
       tickerInput.focus();
       tickerInput.select();
+      return;
+    }
+
+    if (!isInputFocused) {
+      // 1 through 9: Instantly switch tabs 01 to 09
+      if (e.key >= "1" && e.key <= "9") {
+        const tabIdx = parseInt(e.key, 10) - 1;
+        if (tabBtns[tabIdx]) {
+          e.preventDefault();
+          tabBtns[tabIdx].click();
+        }
+      } else if (e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        btnCopyBrief.click();
+      } else if (e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        if (btnPrintReport) btnPrintReport.click();
+      } else if (e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        toggleChartMode();
+      }
     }
   });
 
@@ -329,9 +361,443 @@ document.addEventListener("DOMContentLoaded", () => {
     return `$${Number(num).toFixed(2)}`;
   }
 
+  // --- Quick Navigation & Search History ---
+  const RECENT_KEY = "vettr_recent_searches";
+
+  function getRecentSearches() {
+    try {
+      return JSON.parse(localStorage.getItem(RECENT_KEY)) || ["NVDA", "AAPL", "MSFT", "TSLA", "AMD"];
+    } catch {
+      return ["NVDA", "AAPL", "MSFT", "TSLA", "AMD"];
+    }
+  }
+
+  function saveRecentSearch(ticker) {
+    if (!ticker) return;
+    try {
+      const clean = ticker.toUpperCase();
+      let recents = getRecentSearches().filter(t => t.toUpperCase() !== clean);
+      recents.unshift(clean);
+      recents = recents.slice(0, 8);
+      localStorage.setItem(RECENT_KEY, JSON.stringify(recents));
+      renderRecentPills();
+    } catch (e) {
+      console.warn("Storage write error:", e);
+    }
+  }
+
+  function renderRecentPills() {
+    const container = document.getElementById("recent-pills");
+    if (!container) return;
+    container.innerHTML = "";
+    const recents = getRecentSearches();
+    recents.forEach(t => {
+      const btn = document.createElement("button");
+      btn.className = "pill-ticker-btn recent";
+      btn.setAttribute("data-ticker", t);
+      btn.textContent = t;
+      btn.addEventListener("click", () => {
+        tickerInput.value = t;
+        runAnalysis(t);
+      });
+      container.appendChild(btn);
+    });
+  }
+
+  // Setup Watchlist Pills
+  document.querySelectorAll("#trending-pills .pill-ticker-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const t = btn.getAttribute("data-ticker");
+      if (t) {
+        tickerInput.value = t;
+        runAnalysis(t);
+      }
+    });
+  });
+
+  // --- In-Terminal SEC Document Reader Modal ---
+  const secModal = document.getElementById("sec-modal");
+  const modalFormBadge = document.getElementById("modal-form-badge");
+  const modalDocTitle = document.getElementById("modal-doc-title");
+  const modalDocAcc = document.getElementById("modal-doc-acc");
+  const modalSecExtLink = document.getElementById("modal-sec-ext-link");
+  const modalCloseBtn = document.getElementById("modal-close-btn");
+  const modalFilterInput = document.getElementById("modal-filter-input");
+  const modalStatusText = document.getElementById("modal-status-text");
+  const modalContentPre = document.getElementById("modal-content-pre");
+  const modalLoadingIndicator = document.getElementById("modal-loading-indicator");
+
+  let modalFullContent = "";
+
+  function openSecModal(url, formType, docTitle, accession) {
+    if (!secModal) return;
+    secModal.classList.remove("hidden");
+    if (modalFormBadge) modalFormBadge.textContent = formType || "SEC FILING";
+    if (modalDocTitle) modalDocTitle.textContent = docTitle || "SEC Official Document";
+    if (modalDocAcc) modalDocAcc.textContent = accession ? `ACC: ${accession}` : "";
+    if (modalSecExtLink) modalSecExtLink.href = url || "#";
+    if (modalStatusText) modalStatusText.textContent = "Connecting to SEC archive...";
+    if (modalContentPre) modalContentPre.textContent = "";
+    if (modalLoadingIndicator) modalLoadingIndicator.classList.remove("hidden");
+    if (modalFilterInput) modalFilterInput.value = "";
+
+    fetch(`/api/sec-doc?url=${encodeURIComponent(url)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (modalLoadingIndicator) modalLoadingIndicator.classList.add("hidden");
+        modalFullContent = data.content || "Empty document received.";
+        renderModalContent(modalFullContent);
+        if (modalStatusText) {
+          modalStatusText.textContent = `Retrieved ${Math.round((data.length || 0) / 1024)} KB ${data.truncated ? '(Preview Truncated)' : ''}`;
+        }
+      })
+      .catch(err => {
+        if (modalLoadingIndicator) modalLoadingIndicator.classList.add("hidden");
+        if (modalContentPre) modalContentPre.textContent = `Failed to stream document: ${err.message}\n\nPlease click "OPEN ON SEC.GOV ↗" to view directly.`;
+        if (modalStatusText) modalStatusText.textContent = "Error";
+      });
+  }
+
+  function closeSecModal() {
+    if (secModal) secModal.classList.add("hidden");
+  }
+
+  function renderModalContent(text) {
+    if (!modalContentPre) return;
+    // Strip heavy inline script/style tags if raw HTML
+    let cleaned = text
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+      .replace(/<br\s*[\/]?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n\n")
+      .replace(/<\/div>/gi, "\n")
+      .replace(/<\/tr>/gi, "\n")
+      .replace(/<td[^>]*>/gi, "  ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n\s*\n\s*\n/g, "\n\n")
+      .trim();
+
+    modalContentPre.textContent = cleaned || text;
+  }
+
+  if (modalCloseBtn) modalCloseBtn.addEventListener("click", closeSecModal);
+  if (secModal) {
+    secModal.addEventListener("click", (e) => {
+      if (e.target === secModal) closeSecModal();
+    });
+  }
+
+  if (modalFilterInput) {
+    modalFilterInput.addEventListener("input", () => {
+      const q = modalFilterInput.value.toLowerCase().trim();
+      if (!q) {
+        renderModalContent(modalFullContent);
+        return;
+      }
+      const lines = (modalContentPre.textContent || modalFullContent).split("\n");
+      const matched = lines.filter(l => l.toLowerCase().includes(q));
+      modalContentPre.textContent = matched.length > 0
+        ? `--- MATCHED ${matched.length} LINES FOR QUERY "${q.toUpperCase()}" ---\n\n` + matched.join("\n")
+        : `--- ZERO OCCURRENCES FOUND FOR "${q.toUpperCase()}" IN THIS DOCUMENT ---`;
+    });
+  }
+
+  // --- Interactive Financial OHLCV Trajectory & Volume Chart ---
+  let currentChartPeriod = "6mo";
+  let isCandleMode = false;
+  let currentCandles = [];
+
+  const chartTfBtns = document.querySelectorAll(".chart-tf-btn");
+  const chartToggleBtn = document.getElementById("chart-toggle-btn");
+  const chartContainer = document.getElementById("chart-container");
+  const chartGridLayer = document.getElementById("chart-grid-layer");
+  const chartVolumeLayer = document.getElementById("chart-volume-layer");
+  const chartAreaPath = document.getElementById("chart-area-path");
+  const chartLinePath = document.getElementById("chart-line-path");
+  const chartCandlesLayer = document.getElementById("chart-candles-layer");
+  const chartCrosshairLayer = document.getElementById("chart-crosshair-layer");
+  const crosshairV = document.getElementById("crosshair-v");
+  const crosshairDot = document.getElementById("crosshair-dot");
+  const chartTooltip = document.getElementById("chart-tooltip");
+  const chartRangeStats = document.getElementById("chart-range-stats");
+
+  chartTfBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      chartTfBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentChartPeriod = btn.getAttribute("data-period");
+      loadChartData(currentTicker, currentChartPeriod);
+    });
+  });
+
+  if (chartToggleBtn) {
+    chartToggleBtn.addEventListener("click", toggleChartMode);
+  }
+
+  function toggleChartMode() {
+    isCandleMode = !isCandleMode;
+    if (chartToggleBtn) {
+      chartToggleBtn.querySelector("span").textContent = isCandleMode ? "AREA LINE" : "CANDLES";
+    }
+    renderSvgChart(currentCandles);
+  }
+
+  async function loadChartData(ticker, period) {
+    try {
+      const resp = await fetch(`/api/chart/${encodeURIComponent(ticker)}?period=${period}`);
+      if (!resp.ok) return;
+      const data = await resp.json();
+      currentCandles = data.candles || [];
+      renderSvgChart(currentCandles);
+    } catch (err) {
+      console.warn("Chart fetch error:", err);
+    }
+  }
+
+  function renderSvgChart(candles) {
+    if (!chartContainer || !chartGridLayer || !chartVolumeLayer) return;
+
+    if (!candles || candles.length === 0) {
+      if (chartAreaPath) chartAreaPath.setAttribute("d", "");
+      if (chartLinePath) chartLinePath.setAttribute("d", "");
+      if (chartRangeStats) chartRangeStats.textContent = "HISTORICAL QUOTES UNAVAILABLE";
+      return;
+    }
+
+    const W = 1000;
+    const padX = 24;
+    const chartW = W - padX * 2;
+    const priceTop = 15;
+    const priceBottom = 175;
+    const priceH = priceBottom - priceTop;
+    const volBottom = 236;
+    const volMaxH = 46;
+
+    let minPrice = Infinity;
+    let maxPrice = -Infinity;
+    let maxVol = 0;
+
+    candles.forEach(c => {
+      if (c.low < minPrice) minPrice = c.low;
+      if (c.high > maxPrice) maxPrice = c.high;
+      if (c.volume > maxVol) maxVol = c.volume;
+    });
+
+    const padPrice = (maxPrice - minPrice) * 0.04 || 1;
+    minPrice = Math.max(0, minPrice - padPrice);
+    maxPrice = maxPrice + padPrice;
+    const priceDelta = maxPrice - minPrice || 1;
+    if (maxVol === 0) maxVol = 1;
+
+    // Header stats
+    const firstC = candles[0].close;
+    const lastC = candles[candles.length - 1].close;
+    const totalChgPct = ((lastC - firstC) / firstC) * 100;
+    const isOverallPos = totalChgPct >= 0;
+
+    if (chartRangeStats) {
+      chartRangeStats.textContent = `Period: $${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)} | Change: ${isOverallPos ? '+' : ''}${totalChgPct.toFixed(2)}%`;
+      chartRangeStats.style.color = isOverallPos ? "var(--color-green)" : "var(--color-red)";
+    }
+
+    // Grid lines & labels
+    chartGridLayer.innerHTML = "";
+    for (let i = 0; i < 4; i++) {
+      const y = priceTop + (i / 3) * priceH;
+      const pVal = maxPrice - (i / 3) * priceDelta;
+      
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", "0");
+      line.setAttribute("y1", y.toFixed(1));
+      line.setAttribute("x2", W.toString());
+      line.setAttribute("y2", y.toFixed(1));
+      chartGridLayer.appendChild(line);
+
+      const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      txt.setAttribute("x", (W - 8).toString());
+      txt.setAttribute("y", (y - 3).toFixed(1));
+      txt.setAttribute("text-anchor", "end");
+      txt.setAttribute("fill", "#64748B");
+      txt.setAttribute("font-size", "10");
+      txt.setAttribute("class", "chart-price-label num");
+      txt.textContent = `$${pVal.toFixed(2)}`;
+      chartGridLayer.appendChild(txt);
+    }
+
+    // Volume Layer & Candle/Line coords
+    chartVolumeLayer.innerHTML = "";
+    chartCandlesLayer.innerHTML = "";
+
+    const N = candles.length;
+    let lineD = "";
+    let areaD = "";
+
+    candles.forEach((c, i) => {
+      const x = padX + (i / Math.max(1, N - 1)) * chartW;
+      const closeY = priceTop + (1 - (c.close - minPrice) / priceDelta) * priceH;
+      const openY = priceTop + (1 - (c.open - minPrice) / priceDelta) * priceH;
+      const highY = priceTop + (1 - (c.high - minPrice) / priceDelta) * priceH;
+      const lowY = priceTop + (1 - (c.low - minPrice) / priceDelta) * priceH;
+      const isUp = c.close >= c.open;
+      const color = isUp ? "#10B981" : "#F43F5E";
+
+      // Volume bar
+      const volH = Math.max(2, (c.volume / maxVol) * volMaxH);
+      const volY = volBottom - volH;
+      const volRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      const barW = Math.max(1.5, (chartW / N) * 0.7);
+      volRect.setAttribute("x", (x - barW / 2).toFixed(1));
+      volRect.setAttribute("y", volY.toFixed(1));
+      volRect.setAttribute("width", barW.toFixed(1));
+      volRect.setAttribute("height", volH.toFixed(1));
+      volRect.setAttribute("fill", color);
+      volRect.setAttribute("opacity", "0.4");
+      chartVolumeLayer.appendChild(volRect);
+
+      // Line / Area path commands
+      if (i === 0) {
+        lineD = `M ${x.toFixed(1)} ${closeY.toFixed(1)}`;
+        areaD = `M ${x.toFixed(1)} ${priceBottom} L ${x.toFixed(1)} ${closeY.toFixed(1)}`;
+      } else {
+        lineD += ` L ${x.toFixed(1)} ${closeY.toFixed(1)}`;
+        areaD += ` L ${x.toFixed(1)} ${closeY.toFixed(1)}`;
+      }
+
+      // Candle shapes
+      if (isCandleMode) {
+        const wick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        wick.setAttribute("x1", x.toFixed(1));
+        wick.setAttribute("y1", highY.toFixed(1));
+        wick.setAttribute("x2", x.toFixed(1));
+        wick.setAttribute("y2", lowY.toFixed(1));
+        wick.setAttribute("stroke", color);
+        wick.setAttribute("stroke-width", "1");
+        chartCandlesLayer.appendChild(wick);
+
+        const bodyY = Math.min(openY, closeY);
+        const bodyH = Math.max(2, Math.abs(closeY - openY));
+        const bodyW = Math.max(3, (chartW / N) * 0.75);
+        const body = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        body.setAttribute("x", (x - bodyW / 2).toFixed(1));
+        body.setAttribute("y", bodyY.toFixed(1));
+        body.setAttribute("width", bodyW.toFixed(1));
+        body.setAttribute("height", bodyH.toFixed(1));
+        body.setAttribute("fill", color);
+        chartCandlesLayer.appendChild(body);
+      }
+    });
+
+    if (N > 0) {
+      const lastX = padX + chartW;
+      areaD += ` L ${lastX.toFixed(1)} ${priceBottom} Z`;
+    }
+
+    if (isCandleMode) {
+      chartAreaPath.setAttribute("d", "");
+      chartLinePath.setAttribute("d", "");
+      chartCandlesLayer.style.display = "block";
+    } else {
+      chartCandlesLayer.style.display = "none";
+      chartAreaPath.setAttribute("d", areaD);
+      chartLinePath.setAttribute("d", lineD);
+      chartAreaPath.setAttribute("fill", isOverallPos ? "url(#chartAreaGrad)" : "url(#chartAreaGradNeg)");
+      chartLinePath.setAttribute("stroke", isOverallPos ? "#38BDF8" : "#F43F5E");
+    }
+  }
+
+  // Crosshair & Tooltip Interactive Hover
+  if (chartContainer) {
+    chartContainer.addEventListener("mousemove", (e) => {
+      if (!currentCandles || currentCandles.length === 0) return;
+      const rect = chartContainer.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const normX = (mouseX / rect.width) * 1000;
+
+      const padX = 24;
+      const chartW = 1000 - padX * 2;
+      const N = currentCandles.length;
+
+      let idx = Math.round(((normX - padX) / chartW) * (N - 1));
+      if (idx < 0) idx = 0;
+      if (idx >= N) idx = N - 1;
+
+      const c = currentCandles[idx];
+      const prevC = idx > 0 ? currentCandles[idx - 1] : c;
+      const dChg = c.close - prevC.close;
+      const dChgPct = prevC.close > 0 ? (dChg / prevC.close) * 100 : 0;
+      const isPos = dChg >= 0;
+
+      // Position crosshair
+      const x = padX + (idx / Math.max(1, N - 1)) * chartW;
+      let minP = Infinity, maxP = -Infinity;
+      currentCandles.forEach(cd => {
+        if (cd.low < minP) minP = cd.low;
+        if (cd.high > maxP) maxP = cd.high;
+      });
+      const padP = (maxP - minP) * 0.04 || 1;
+      minP = Math.max(0, minP - padP);
+      maxP += padP;
+      const pDelta = maxP - minP || 1;
+      const closeY = 15 + (1 - (c.close - minP) / pDelta) * 160;
+
+      if (crosshairV) {
+        crosshairV.setAttribute("x1", x.toFixed(1));
+        crosshairV.setAttribute("x2", x.toFixed(1));
+      }
+      if (crosshairDot) {
+        crosshairDot.setAttribute("cx", x.toFixed(1));
+        crosshairDot.setAttribute("cy", closeY.toFixed(1));
+        crosshairDot.setAttribute("stroke", isPos ? "#10B981" : "#F43F5E");
+      }
+      if (chartCrosshairLayer) chartCrosshairLayer.style.display = "block";
+
+      // Fill tooltip
+      const ttDate = document.getElementById("tt-date");
+      const ttClose = document.getElementById("tt-close");
+      const ttChg = document.getElementById("tt-chg");
+      const ttOpen = document.getElementById("tt-open");
+      const ttHigh = document.getElementById("tt-high");
+      const ttLow = document.getElementById("tt-low");
+      const ttVol = document.getElementById("tt-vol");
+
+      if (ttDate) ttDate.textContent = c.date;
+      if (ttClose) ttClose.textContent = `$${c.close.toFixed(2)}`;
+      if (ttChg) {
+        ttChg.textContent = `${isPos ? '+' : ''}${dChgPct.toFixed(2)}%`;
+        ttChg.style.color = isPos ? "var(--color-green)" : "var(--color-red)";
+      }
+      if (ttOpen) ttOpen.textContent = `$${c.open.toFixed(2)}`;
+      if (ttHigh) ttHigh.textContent = `$${c.high.toFixed(2)}`;
+      if (ttLow) ttLow.textContent = `$${c.low.toFixed(2)}`;
+      if (ttVol) ttVol.textContent = c.volume.toLocaleString();
+
+      if (chartTooltip) {
+        chartTooltip.classList.remove("hidden");
+        const ttW = chartTooltip.offsetWidth || 280;
+        let leftPx = mouseX + 16;
+        if (leftPx + ttW > rect.width) {
+          leftPx = mouseX - ttW - 16;
+        }
+        chartTooltip.style.left = `${Math.max(12, leftPx)}px`;
+      }
+    });
+
+    chartContainer.addEventListener("mouseleave", () => {
+      if (chartCrosshairLayer) chartCrosshairLayer.style.display = "none";
+      if (chartTooltip) chartTooltip.classList.add("hidden");
+    });
+  }
+
   // Core Analysis Runner
   async function runAnalysis(ticker) {
     currentTicker = ticker.toUpperCase();
+    saveRecentSearch(currentTicker);
+    loadChartData(currentTicker, currentChartPeriod);
     loadingCurtain.classList.remove("hidden");
     try {
       const resp = await fetch(`/api/analyze/${currentTicker}`);
@@ -641,18 +1107,24 @@ document.addEventListener("DOMContentLoaded", () => {
     if (trades.length > 0) {
       trades.forEach(t => {
         const isBuy = t.transaction_type === "BUY";
-        insiderTbody.innerHTML += `
-          <tr>
-            <td class="num">${t.transaction_date}</td>
-            <td><strong>${t.owner}</strong></td>
-            <td>${t.title}</td>
-            <td><span class="pill-badge ${isBuy ? 'green' : 'red'}">${t.transaction_type}</span></td>
-            <td class="num">${t.shares.toLocaleString()}</td>
-            <td class="num">${t.price_per_share > 0 ? '$' + t.price_per_share.toFixed(2) : '-'}</td>
-            <td class="num" style="color: var(--text-main); font-weight: 700;">${formatMoney(t.total_value)}</td>
-            <td><a href="${t.filing_url}" target="_blank" rel="noopener noreferrer" style="color: var(--color-cyan); text-decoration: none;">Form 4 ↗</a></td>
-          </tr>
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="num">${t.transaction_date}</td>
+          <td><strong>${t.owner}</strong></td>
+          <td>${t.title}</td>
+          <td><span class="pill-badge ${isBuy ? 'green' : 'red'}">${t.transaction_type}</span></td>
+          <td class="num">${t.shares.toLocaleString()}</td>
+          <td class="num">${t.price_per_share > 0 ? '$' + t.price_per_share.toFixed(2) : '-'}</td>
+          <td class="num" style="color: var(--text-main); font-weight: 700;">${formatMoney(t.total_value)}</td>
+          <td><button class="btn-action sec-table-btn" title="Read Form 4 inside Terminal">READ FORM 4 ↗</button></td>
         `;
+        const btn = tr.querySelector(".sec-table-btn");
+        if (btn) {
+          btn.addEventListener("click", () => {
+            openSecModal(t.filing_url, "FORM 4", `${t.owner} (${t.title || 'Insider'})`, t.transaction_date);
+          });
+        }
+        insiderTbody.appendChild(tr);
       });
     } else {
       insiderTbody.innerHTML = "<tr><td colspan='8'>No recent Form 4 insider transactions recorded.</td></tr>";
@@ -671,16 +1143,22 @@ document.addEventListener("DOMContentLoaded", () => {
           const isMediumAlert = rawItem.includes("4.01") || rawItem.includes("3.01") || rawItem.includes("2.04");
           const alertClass = isHighAlert ? "high-alert" : (isMediumAlert ? "medium-alert" : "");
 
-          events8kTbody.innerHTML += `
-            <tr>
-              <td class="num">${ev.filing_date}</td>
-              <td class="num">${ev.report_date || ev.filing_date}</td>
-              <td><span class="item-badge-8k ${alertClass}">${ev.items ? 'Item ' + ev.items : '8-K Event'}</span></td>
-              <td><strong style="color: var(--text-main);">${ev.description || 'Material Definitive Disclosure'}</strong></td>
-              <td class="num" style="font-size: 11px;">${ev.accession_number}</td>
-              <td><a href="${ev.url}" target="_blank" rel="noopener noreferrer" style="color: var(--color-cyan); text-decoration: none;">Filing ↗</a></td>
-            </tr>
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="num">${ev.filing_date}</td>
+            <td class="num">${ev.report_date || ev.filing_date}</td>
+            <td><span class="item-badge-8k ${alertClass}">${ev.items ? 'Item ' + ev.items : '8-K Event'}</span></td>
+            <td><strong style="color: var(--text-main);">${ev.description || 'Material Definitive Disclosure'}</strong></td>
+            <td class="num" style="font-size: 11px;">${ev.accession_number}</td>
+            <td><button class="btn-action sec-table-btn" title="Read 8-K inside Terminal">READ 8-K ↗</button></td>
           `;
+          const btn = tr.querySelector(".sec-table-btn");
+          if (btn) {
+            btn.addEventListener("click", () => {
+              openSecModal(ev.url, "FORM 8-K", ev.description || "Material Definitive Disclosure", ev.accession_number);
+            });
+          }
+          events8kTbody.appendChild(tr);
         });
       } else {
         events8kTbody.innerHTML = "<tr><td colspan='6'>No recent Form 8-K filings surfaced in SEC archive.</td></tr>";
@@ -733,16 +1211,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (filingsList.length > 0) {
       filingsList.forEach(f => {
-        filingsTbody.innerHTML += `
-          <tr>
-            <td><strong>${f.form}</strong></td>
-            <td class="num">${f.filing_date}</td>
-            <td class="num">${f.report_date || f.filing_date}</td>
-            <td class="num" style="font-size: 11px;">${f.accession_number}</td>
-            <td style="color: var(--text-muted); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${f.primary_document}</td>
-            <td><a href="${f.url}" target="_blank" rel="noopener noreferrer" style="color: var(--color-cyan); text-decoration: none;">View Archive ↗</a></td>
-          </tr>
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><strong>${f.form}</strong></td>
+          <td class="num">${f.filing_date}</td>
+          <td class="num">${f.report_date || f.filing_date}</td>
+          <td class="num" style="font-size: 11px;">${f.accession_number}</td>
+          <td style="color: var(--text-muted); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${f.primary_document}</td>
+          <td><button class="btn-action sec-table-btn" title="Stream & Read in Terminal">READ FILING ↗</button></td>
         `;
+        const btn = tr.querySelector(".sec-table-btn");
+        if (btn) {
+          btn.addEventListener("click", () => {
+            openSecModal(f.url, f.form, f.primary_document, f.accession_number);
+          });
+        }
+        filingsTbody.appendChild(tr);
       });
     } else {
       filingsTbody.innerHTML = "<tr><td colspan='6'>No recent filings found.</td></tr>";
@@ -900,5 +1384,6 @@ document.addEventListener("DOMContentLoaded", () => {
   setInterval(fetchExchangePulse, 15000);
 
   // Initial load
+  renderRecentPills();
   runAnalysis("NVDA");
 });

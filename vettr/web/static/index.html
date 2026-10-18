@@ -103,6 +103,33 @@
     </div>
   </div>
 
+  <!-- Quick Navigation & Watchlist Bar -->
+  <div class="quick-nav-bar">
+    <div class="quick-nav-group">
+      <span class="quick-nav-label">WATCHLIST</span>
+      <div class="quick-pills" id="trending-pills">
+        <button class="pill-ticker-btn" data-ticker="NVDA">NVDA</button>
+        <button class="pill-ticker-btn" data-ticker="AAPL">AAPL</button>
+        <button class="pill-ticker-btn" data-ticker="MSFT">MSFT</button>
+        <button class="pill-ticker-btn" data-ticker="TSLA">TSLA</button>
+        <button class="pill-ticker-btn" data-ticker="AMD">AMD</button>
+        <button class="pill-ticker-btn" data-ticker="AMZN">AMZN</button>
+        <button class="pill-ticker-btn" data-ticker="META">META</button>
+        <button class="pill-ticker-btn" data-ticker="GOOGL">GOOGL</button>
+        <button class="pill-ticker-btn" data-ticker="PLTR">PLTR</button>
+        <button class="pill-ticker-btn" data-ticker="MSTR">MSTR</button>
+        <button class="pill-ticker-btn" data-ticker="SMCI">SMCI</button>
+        <button class="pill-ticker-btn" data-ticker="ARM">ARM</button>
+      </div>
+    </div>
+    <div class="quick-nav-group" id="recents-nav-group">
+      <span class="quick-nav-label">RECENT</span>
+      <div class="quick-pills" id="recent-pills">
+        <!-- Dynamically populated from localStorage -->
+      </div>
+    </div>
+  </div>
+
   <!-- Main Workstation -->
   <main class="terminal-main">
     <!-- Loading Curtain -->
@@ -189,6 +216,74 @@
       <span class="synthesis-badge">AUDITOR SYNTHESIS</span>
       <span id="executive-synthesis-text" class="synthesis-text">Synthesizing multi-variable forensic telemetry...</span>
     </div>
+
+    <!-- Interactive Financial Trajectory & Volume Chart -->
+    <section class="hud-chart-panel">
+      <div class="chart-panel-header">
+        <div class="chart-panel-title">
+          <span class="chart-indicator-dot"></span>
+          <span class="chart-title-text">EQUITY TRAJECTORY &amp; VOLUME ACCUMULATION</span>
+          <span id="chart-range-stats" class="chart-range-stats num">--</span>
+        </div>
+        <div class="chart-controls">
+          <div class="chart-tf-buttons" id="chart-tf-group">
+            <button class="chart-tf-btn" data-period="1mo">1M</button>
+            <button class="chart-tf-btn" data-period="3mo">3M</button>
+            <button class="chart-tf-btn active" data-period="6mo">6M</button>
+            <button class="chart-tf-btn" data-period="1y">1Y</button>
+            <button class="chart-tf-btn" data-period="5y">5Y</button>
+          </div>
+          <button id="chart-toggle-btn" class="chart-btn-toggle" title="Toggle Line / Candle View">
+            <span>CANDLES</span>
+          </button>
+        </div>
+      </div>
+      <div class="chart-canvas-container" id="chart-container">
+        <svg id="financial-svg-chart" class="financial-svg-chart" viewBox="0 0 1000 240" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="chartAreaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.28"/>
+              <stop offset="80%" stop-color="#38BDF8" stop-opacity="0.04"/>
+              <stop offset="100%" stop-color="#38BDF8" stop-opacity="0.00"/>
+            </linearGradient>
+            <linearGradient id="chartAreaGradNeg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#F43F5E" stop-opacity="0.28"/>
+              <stop offset="80%" stop-color="#F43F5E" stop-opacity="0.04"/>
+              <stop offset="100%" stop-color="#F43F5E" stop-opacity="0.00"/>
+            </linearGradient>
+          </defs>
+          <!-- Horizontal & Vertical Grid Lines -->
+          <g id="chart-grid-layer" class="chart-grid"></g>
+          <!-- Volume Histogram Bars Layer (bottom 25%) -->
+          <g id="chart-volume-layer" class="chart-volume"></g>
+          <!-- Area Gradient Fill -->
+          <path id="chart-area-path" fill="url(#chartAreaGrad)" d=""></path>
+          <!-- Primary Continuous Price Vector -->
+          <path id="chart-line-path" fill="none" stroke="#38BDF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d=""></path>
+          <!-- Candlesticks Layer -->
+          <g id="chart-candles-layer" class="chart-candles" style="display: none;"></g>
+          <!-- Hover Crosshair Guidelines & Node -->
+          <g id="chart-crosshair-layer" class="chart-crosshair" style="display: none;">
+            <line id="crosshair-v" x1="0" y1="0" x2="0" y2="240" stroke="rgba(255,255,255,0.22)" stroke-width="1" stroke-dasharray="2,2" />
+            <circle id="crosshair-dot" cx="0" cy="0" r="4" fill="#FFFFFF" stroke="#38BDF8" stroke-width="2" />
+          </g>
+        </svg>
+        <!-- Floating Interactive Tooltip -->
+        <div id="chart-tooltip" class="chart-tooltip hidden">
+          <div class="tt-date" id="tt-date">--</div>
+          <div class="tt-metrics">
+            <span class="tt-label">CLOSE:</span> <strong class="num" id="tt-close">--</strong>
+            <span class="tt-label">CHG:</span> <span class="num" id="tt-chg">--</span>
+          </div>
+          <div class="tt-metrics secondary">
+            <span class="tt-label">O:</span> <span class="num" id="tt-open">--</span>
+            <span class="tt-label">H:</span> <span class="num" id="tt-high">--</span>
+            <span class="tt-label">L:</span> <span class="num" id="tt-low">--</span>
+            <span class="tt-label">VOL:</span> <span class="num" id="tt-vol">--</span>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- Navigation Tabs -->
     <nav class="terminal-tabs">
@@ -614,10 +709,54 @@
     </div>
   </main>
 
-  <!-- Clean Minimalist Footer -->
+  <!-- In-Terminal SEC Document Reader Modal -->
+  <div id="sec-modal" class="sec-modal-backdrop hidden">
+    <div class="sec-modal-container">
+      <div class="sec-modal-header">
+        <div class="sec-modal-title-group">
+          <span class="sec-modal-badge" id="modal-form-badge">FORM 10-K</span>
+          <span class="sec-modal-title" id="modal-doc-title">SEC EDGAR Official Document</span>
+          <span class="sec-modal-acc num" id="modal-doc-acc">ACC: --</span>
+        </div>
+        <div class="sec-modal-actions">
+          <a id="modal-sec-ext-link" href="#" target="_blank" rel="noopener noreferrer" class="btn-action sec-link">
+            OPEN ON SEC.GOV ↗
+          </a>
+          <button id="modal-close-btn" class="btn-action" title="Close Viewer (Esc)">
+            CLOSE [ESC] ✕
+          </button>
+        </div>
+      </div>
+      <div class="sec-modal-toolbar">
+        <input type="text" id="modal-filter-input" placeholder="SEARCH / FILTER IN DOCUMENT CONTENT..." autocomplete="off" />
+        <div class="sec-modal-status" id="modal-status-text">Ready</div>
+      </div>
+      <div class="sec-modal-body" id="modal-body">
+        <div id="modal-loading-indicator" class="modal-loading-box hidden">
+          <span>STREAMING DOCUMENT FROM SEC ARCHIVES...</span>
+        </div>
+        <pre id="modal-content-pre" class="sec-content-pre"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clean Institutional Footer with Operational Telemetry & Hotkeys -->
   <footer class="terminal-footer">
-    <span>VETTR FINANCIAL RESEARCH TERMINAL • SEC EDGAR AUDIT ENGINE</span>
-    <span>HOTKEY: PRESS [/] FOR COMMAND SEARCH</span>
+    <div class="footer-left">
+      <span class="footer-brand">VETTR FINANCIAL FORENSICS TERMINAL</span>
+      <span class="footer-sep">•</span>
+      <span class="footer-dim">SEC EDGAR REAL-TIME XBRL ENGINE</span>
+      <span class="footer-sep">•</span>
+      <span class="footer-dim">VERSION 2.4.0</span>
+    </div>
+    <div class="footer-hotkeys">
+      <span class="hotkey-pill"><kbd>/</kbd> SEARCH</span>
+      <span class="hotkey-pill"><kbd>1-9</kbd> TABS</span>
+      <span class="hotkey-pill"><kbd>C</kbd> COPY BRIEF</span>
+      <span class="hotkey-pill"><kbd>P</kbd> PDF / PRINT</span>
+      <span class="hotkey-pill"><kbd>M</kbd> TOGGLE CHART</span>
+      <span class="hotkey-pill"><kbd>ESC</kbd> CLOSE</span>
+    </div>
   </footer>
 
   <script src="/static/app.js"></script>
