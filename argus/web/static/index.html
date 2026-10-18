@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ARGUS // Autonomous Financial Forensics & Regulatory Intelligence Terminal</title>
+  <title>ARGUS // Autonomous Financial Forensics &amp; Regulatory Intelligence Terminal</title>
   <link rel="stylesheet" href="/static/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,6 +49,9 @@
         <button class="ticker-pill" data-ticker="MSFT">MSFT</button>
         <button class="ticker-pill" data-ticker="PLTR">PLTR</button>
       </div>
+      <button id="btn-export-dossier" class="action-btn-dossier" title="Export Markdown Due Diligence Dossier">
+        📥 EXPORT DOSSIER
+      </button>
     </div>
   </header>
 
@@ -107,16 +110,25 @@
     <!-- Navigation Tabs -->
     <nav class="terminal-tabs">
       <button class="tab-btn active" data-tab="tab-forensics">
-        <span class="tab-index">[1]</span> FORENSIC RADAR &amp; ANOMALIES
+        <span class="tab-index">[1]</span> FORENSIC RADAR
       </button>
       <button class="tab-btn" data-tab="tab-diff">
-        <span class="tab-index">[2]</span> SEC FILING DELTA (10-K DIFF)
+        <span class="tab-index">[2]</span> SEC 10-K DELTA
+      </button>
+      <button class="tab-btn" data-tab="tab-dupont">
+        <span class="tab-index">[3]</span> DUPONT ROE ENGINE
+      </button>
+      <button class="tab-btn" data-tab="tab-insiders">
+        <span class="tab-index">[4]</span> FORM 4 INSIDER RADAR
+      </button>
+      <button class="tab-btn" data-tab="tab-screener">
+        <span class="tab-index">[5]</span> BATCH SCREENER
       </button>
       <button class="tab-btn" data-tab="tab-financials">
-        <span class="tab-index">[3]</span> AUDITED GAAP XBRL FINANCIALS
+        <span class="tab-index">[6]</span> AUDITED FINANCIALS
       </button>
       <button class="tab-btn" data-tab="tab-archive">
-        <span class="tab-index">[4]</span> OFFICIAL EDGAR ARCHIVE
+        <span class="tab-index">[7]</span> EDGAR ARCHIVE
       </button>
     </nav>
 
@@ -266,7 +278,103 @@
         </div>
       </section>
 
-      <!-- TAB 3: AUDITED XBRL FINANCIALS -->
+      <!-- TAB 3: DUPONT ROE ENGINE -->
+      <section id="tab-dupont" class="tab-panel">
+        <div class="panel-box full-width">
+          <div class="panel-box-header">
+            <span class="panel-box-title">🔬 DUPONT 3-WAY &amp; 5-WAY ROE DECOMPOSITION</span>
+            <span class="source-tag">PROFITABILITY DRIVER ANALYSIS</span>
+          </div>
+          <p class="diff-intro">
+            Is Return on Equity (ROE) driven by pricing power (Operating Margin), capital efficiency (Asset Turnover), or excessive debt (Financial Leverage)?
+          </p>
+          <div class="table-responsive">
+            <table id="dupont-table" class="financials-table">
+              <thead>
+                <tr>
+                  <th>Fiscal Year</th>
+                  <th>ROE (%)</th>
+                  <th>ROA (%)</th>
+                  <th>Net Margin (%)</th>
+                  <th>Operating Margin (%)</th>
+                  <th>Asset Turnover</th>
+                  <th>Equity Multiplier (Leverage)</th>
+                  <th>Quality Assessment</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: FORM 4 INSIDER TRADING RADAR -->
+      <section id="tab-insiders" class="tab-panel">
+        <div class="panel-box full-width">
+          <div class="panel-box-header">
+            <span class="panel-box-title">💼 U.S. SEC FORM 4 C-SUITE &amp; DIRECTOR INSIDER ACTIVITY</span>
+            <div id="insider-sentiment-badge" class="stat-badge red">HEAVY INSIDER SELLING</div>
+          </div>
+          <div class="table-responsive">
+            <table id="insiders-table" class="filings-table">
+              <thead>
+                <tr>
+                  <th>Filing Date</th>
+                  <th>Reporting Owner</th>
+                  <th>Title / Role</th>
+                  <th>Transaction Type</th>
+                  <th>Shares Traded</th>
+                  <th>Price / Share</th>
+                  <th>Total Transaction Value</th>
+                  <th>SEC Link</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: BATCH SCREENER -->
+      <section id="tab-screener" class="tab-panel">
+        <div class="panel-box full-width">
+          <div class="panel-box-header">
+            <span class="panel-box-title">🔍 BATCH FORENSIC SCREENER &amp; ANOMALY RADAR</span>
+            <div class="screener-controls">
+              <button class="screener-pill active" data-preset="mega_tech">Mega Tech</button>
+              <button class="screener-pill" data-preset="semis">Semiconductors</button>
+              <button class="screener-pill" data-preset="high_growth">High Growth</button>
+              <button class="screener-pill" data-preset="ev_clean">EV &amp; CleanTech</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table id="screener-table" class="filings-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Ticker</th>
+                  <th>Company Name</th>
+                  <th>Market Price</th>
+                  <th>Forensic Risk Score</th>
+                  <th>Beneish M-Score</th>
+                  <th>Altman Z-Score</th>
+                  <th>Piotroski F</th>
+                  <th>Anomalies</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 6: AUDITED XBRL FINANCIALS -->
       <section id="tab-financials" class="tab-panel">
         <div class="panel-box full-width">
           <div class="panel-box-header">
@@ -289,7 +397,7 @@
         </div>
       </section>
 
-      <!-- TAB 4: OFFICIAL EDGAR ARCHIVE -->
+      <!-- TAB 7: OFFICIAL EDGAR ARCHIVE -->
       <section id="tab-archive" class="tab-panel">
         <div class="panel-box full-width">
           <div class="panel-box-header">

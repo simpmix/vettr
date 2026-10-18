@@ -2,22 +2,26 @@ import logging
 from typing import Any, Dict, Optional
 from argus.edgar.client import EdgarClient
 from argus.edgar.parser import EdgarParser
+from argus.edgar.insiders import InsiderScanner
 from argus.forensics.metrics import ForensicMetrics
 from argus.forensics.anomalies import AnomalyDetector
 from argus.forensics.sentiment import FinancialSentiment
+from argus.forensics.dupont import DuPontAnalyzer
 from argus.diff.differ import FilingDiffer
 from argus.market.provider import MarketDataProvider
+from argus.export.dossier import DossierGenerator
 
 logger = logging.getLogger(__name__)
 
 class ArgusEngine:
     """
     Autonomous Financial Forensics & Intelligence Pipeline.
-    Orchestrates SEC EDGAR data, quantitative models, filing diffs, and market quotes.
+    Orchestrates SEC EDGAR data, quantitative models, filing diffs, Form 4 insider trades, and market quotes.
     """
 
     def __init__(self):
         self.edgar = EdgarClient()
+        self.insiders = InsiderScanner(self.edgar)
 
     def analyze_ticker(self, ticker: str) -> Dict[str, Any]:
         """Runs the complete end-to-end forensic analysis for a ticker."""
@@ -48,11 +52,12 @@ class ArgusEngine:
         except Exception as e:
             logger.warning(f"Could not load SEC XBRL facts for {clean_ticker}: {e}")
 
-        # 5. Quantitative Forensic Scores
+        # 5. Quantitative Forensic Scores & DuPont Analysis
         beneish = None
         altman = None
         piotroski = None
         financial_anomalies = []
+        dupont_series = []
 
         if len(annual_series) >= 2:
             current_fy = annual_series[-1]
@@ -63,9 +68,11 @@ class ArgusEngine:
             altman = ForensicMetrics.calculate_altman_z_score(current_fy, market_cap=market_cap)
             piotroski = ForensicMetrics.calculate_piotroski_f_score(current_fy, prior_fy)
             financial_anomalies = AnomalyDetector.analyze_financial_anomalies(current_fy, prior_fy)
+            dupont_series = [DuPontAnalyzer.decompose_roe(rec) for rec in annual_series[-5:]]
         elif len(annual_series) == 1:
             current_fy = annual_series[-1]
             altman = ForensicMetrics.calculate_altman_z_score(current_fy, market_cap=market_data.get("market_cap"))
+            dupont_series = [DuPontAnalyzer.decompose_roe(current_fy)]
 
         # 6. Qualitative Disclosure Analysis & Text Diff
         sections_latest = {}
@@ -103,8 +110,14 @@ class ArgusEngine:
             except Exception as e:
                 logger.error(f"Error parsing filing disclosures for {clean_ticker}: {e}")
 
-        # 7. Aggregate Risk Score (Composite 0 - 100)
-        # Higher score = higher risk / forensic concern
+        # 7. Form 4 Insider Trading Activity
+        insider_data = {"trades": [], "sentiment": "NEUTRAL"}
+        try:
+            insider_data = self.insiders.get_recent_insider_trades(cik, limit=12)
+        except Exception as e:
+            logger.warning(f"Could not load Form 4 insider activity for {clean_ticker}: {e}")
+
+        # 8. Aggregate Risk Score (Composite 0 - 100)
         risk_score = 15  # Baseline
         if beneish and beneish.get("is_manipulator"):
             risk_score += 35
@@ -119,6 +132,8 @@ class ArgusEngine:
             risk_score += min(len(financial_anomalies) * 10, 25)
         if len(regulatory_flags) > 0:
             risk_score += min(len(regulatory_flags) * 8, 20)
+        if insider_data.get("sentiment") == "HEAVY INSIDER SELLING":
+            risk_score += 10
 
         risk_score = min(100, max(0, risk_score))
 
@@ -136,9 +151,15 @@ class ArgusEngine:
                 "sentiment": sentiment_analysis
             },
             "financial_series": annual_series[-5:],  # Last 5 fiscal years
+            "dupont_series": dupont_series,
             "diff_analysis": diff_analysis,
+            "insider_activity": insider_data,
             "filings": {
                 "recent_10k": recent_10k_filings,
                 "all_recent": recent_all_filings[:15]
             }
         }
+
+    def generate_dossier_markdown(self, ticker: str) -> str:
+        report = self.analyze_ticker(ticker)
+        return DossierGenerator.generate_markdown_dossier(report)

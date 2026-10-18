@@ -970,3 +970,52 @@ body.terminal-body {
   font-size: 11px;
   color: var(--text-muted);
 }
+
+
+/* Action Button Dossier Export */
+.action-btn-dossier {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 230, 118, 0.2));
+  color: #FFF;
+  border: 1px solid var(--accent-cyan);
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
+}
+
+.action-btn-dossier:hover {
+  background: var(--accent-cyan);
+  color: #000;
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.5);
+}
+
+/* Screener Controls */
+.screener-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.screener-pill {
+  background: #0A0D14;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.screener-pill:hover, .screener-pill.active {
+  background: rgba(0, 212, 255, 0.12);
+  color: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+}

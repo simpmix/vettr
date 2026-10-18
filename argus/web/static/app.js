@@ -5,6 +5,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const tabBtns = document.querySelectorAll(".tab-btn");
   const tabPanels = document.querySelectorAll(".tab-panel");
   const quickPills = document.querySelectorAll(".ticker-pill");
+  const btnExportDossier = document.getElementById("btn-export-dossier");
+  const screenerPills = document.querySelectorAll(".screener-pill");
+
+  let currentTicker = "NVDA";
 
   // Tab switching
   tabBtns.forEach(btn => {
@@ -17,6 +21,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const targetPanel = document.getElementById(targetId);
       if (targetPanel) {
         targetPanel.classList.add("active");
+      }
+
+      // If screener tab opened for the first time, load screener
+      if (targetId === "tab-screener") {
+        const activePreset = document.querySelector(".screener-pill.active");
+        const preset = activePreset ? activePreset.getAttribute("data-preset") : "mega_tech";
+        loadScreener(preset);
       }
     });
   });
@@ -36,6 +47,23 @@ document.addEventListener("DOMContentLoaded", () => {
       const ticker = pill.getAttribute("data-ticker");
       tickerInput.value = ticker;
       runAnalysis(ticker);
+    });
+  });
+
+  // Export Dossier Markdown download
+  btnExportDossier.addEventListener("click", () => {
+    if (currentTicker) {
+      window.location.href = `/api/dossier/${currentTicker}`;
+    }
+  });
+
+  // Screener preset buttons
+  screenerPills.forEach(pill => {
+    pill.addEventListener("click", () => {
+      screenerPills.forEach(p => p.classList.remove("active"));
+      pill.classList.add("active");
+      const preset = pill.getAttribute("data-preset");
+      loadScreener(preset);
     });
   });
 
@@ -61,11 +89,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Load and render analysis
   async function runAnalysis(ticker) {
+    currentTicker = ticker.toUpperCase();
     loadingOverlay.classList.remove("hidden");
     try {
-      const resp = await fetch(`/api/analyze/${ticker}`);
+      const resp = await fetch(`/api/analyze/${currentTicker}`);
       if (!resp.ok) {
-        throw new Error(`Failed to fetch report for ${ticker}`);
+        throw new Error(`Failed to fetch report for ${currentTicker}`);
       }
       const data = await resp.json();
       renderDashboard(data);
@@ -297,13 +326,69 @@ document.addEventListener("DOMContentLoaded", () => {
       removedList.innerHTML = "<div style='color:var(--text-muted); padding: 10px;'>No prior 10-K diff available.</div>";
     }
 
-    // 4. TAB 3: Audited Financials
+    // 4. TAB 3: DuPont ROE Decomposition
+    const dupontList = data.dupont_series || [];
+    const dupontTbody = document.querySelector("#dupont-table tbody");
+    dupontTbody.innerHTML = "";
+
+    if (dupontList.length > 0) {
+      dupontList.forEach(d => {
+        dupontTbody.innerHTML += `
+          <tr>
+            <td><strong>FY ${d.fiscal_year}</strong></td>
+            <td style="color: var(--accent-cyan); font-weight: 700;">${d.roe_pct}%</td>
+            <td>${d.roa_pct}%</td>
+            <td>${d.net_profit_margin_pct}%</td>
+            <td>${d.operating_margin_pct}%</td>
+            <td>${d.asset_turnover}x</td>
+            <td>${d.equity_multiplier}x</td>
+            <td style="color: ${d.quality_verdict.includes('HIGH') ? 'var(--accent-green)' : (d.quality_verdict.includes('LEVERAGE') ? 'var(--accent-red)' : 'var(--text-secondary)')}; font-weight: 600;">
+              ${d.quality_verdict}
+            </td>
+          </tr>
+        `;
+      });
+    } else {
+      dupontTbody.innerHTML = "<tr><td colspan='8'>No DuPont decomposition records available.</td></tr>";
+    }
+
+    // 5. TAB 4: Form 4 Insider Radar
+    const insider = data.insider_activity || {};
+    const insiderBadge = document.getElementById("insider-sentiment-badge");
+    const insiderTbody = document.querySelector("#insiders-table tbody");
+    insiderTbody.innerHTML = "";
+
+    insiderBadge.textContent = insider.sentiment || "NEUTRAL";
+    const sentClass = (insider.sentiment || '').includes("SELLING") ? "red" : ((insider.sentiment || '').includes("ACCUMULATION") ? "green" : "");
+    insiderBadge.className = `stat-badge ${sentClass}`;
+
+    const trades = insider.trades || [];
+    if (trades.length > 0) {
+      trades.forEach(t => {
+        const isBuy = t.transaction_type === "BUY";
+        insiderTbody.innerHTML += `
+          <tr>
+            <td>${t.transaction_date}</td>
+            <td><strong>${t.owner}</strong></td>
+            <td style="color: var(--text-secondary);">${t.title}</td>
+            <td><span class="anomaly-sev ${isBuy ? 'MEDIUM' : 'HIGH'}" style="background: ${isBuy ? 'rgba(0,230,118,0.2)' : 'rgba(255,56,92,0.2)'}; color: ${isBuy ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 700;">${t.transaction_type}</span></td>
+            <td>${t.shares.toLocaleString()}</td>
+            <td>${t.price_per_share > 0 ? '$' + t.price_per_share.toFixed(2) : '-'}</td>
+            <td style="color: #FFF; font-weight: 600;">${formatMoney(t.total_value)}</td>
+            <td><a href="${t.filing_url}" target="_blank" rel="noopener noreferrer" class="edgar-link">Form 4 ↗</a></td>
+          </tr>
+        `;
+      });
+    } else {
+      insiderTbody.innerHTML = "<tr><td colspan='8'>No recent Form 4 insider transactions recorded.</td></tr>";
+    }
+
+    // 6. TAB 6: Audited Financials
     const finSeries = data.financial_series || [];
     const finTable = document.getElementById("financials-table");
     const thead = finTable.querySelector("thead tr");
     const tbody = finTable.querySelector("tbody");
     
-    // Clear dynamic years
     thead.innerHTML = "<th>Financial Metric (USD)</th>";
     tbody.innerHTML = "";
 
@@ -337,7 +422,7 @@ document.addEventListener("DOMContentLoaded", () => {
       tbody.innerHTML = "<tr><td colspan='5'>No XBRL financial statement records found.</td></tr>";
     }
 
-    // 5. TAB 4: Official EDGAR Archive
+    // 7. TAB 7: Official EDGAR Archive
     const filingsList = (data.filings && data.filings.all_recent) || [];
     const filingsTbody = document.querySelector("#filings-table tbody");
     filingsTbody.innerHTML = "";
@@ -357,6 +442,42 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     } else {
       filingsTbody.innerHTML = "<tr><td colspan='6'>No recent filings found.</td></tr>";
+    }
+  }
+
+  // Load Batch Screener
+  async function loadScreener(preset) {
+    const tbody = document.querySelector("#screener-table tbody");
+    tbody.innerHTML = "<tr><td colspan='9' style='text-align:center; padding: 20px; color: var(--accent-cyan);'>Screening EDGAR archives for watchlist...</td></tr>";
+
+    try {
+      const resp = await fetch(`/api/screen?preset=${preset}`);
+      if (!resp.ok) throw new Error("Failed to load screener");
+      const data = await resp.json();
+      const results = data.results || [];
+      tbody.innerHTML = "";
+
+      results.forEach((r, idx) => {
+        const risk = r.risk_score;
+        const riskColor = risk >= 60 ? "var(--accent-red)" : (risk >= 30 ? "var(--accent-amber)" : "var(--accent-green)");
+        const bColor = r.is_manipulator ? "var(--accent-red)" : "var(--accent-green)";
+
+        tbody.innerHTML += `
+          <tr style="cursor: pointer;" onclick="document.getElementById('ticker-input').value='${r.ticker}'; document.getElementById('ticker-form').dispatchEvent(new Event('submit')); document.querySelector('[data-tab=\\'tab-forensics\\']').click();">
+            <td><strong>#${idx + 1}</strong></td>
+            <td><strong style="color: var(--accent-cyan);">${r.ticker}</strong></td>
+            <td>${r.name}</td>
+            <td>$${r.price.toFixed(2)}</td>
+            <td style="color: ${riskColor}; font-weight: 700;">${risk} / 100</td>
+            <td style="color: ${bColor}; font-weight: 600;">${r.beneish_score || 'N/A'}</td>
+            <td>${r.altman_score || 'N/A'}</td>
+            <td>${r.piotroski_score ? r.piotroski_score + '/9' : 'N/A'}</td>
+            <td>${r.anomalies_count > 0 ? '<span style="color:var(--accent-red); font-weight:700;">' + r.anomalies_count + ' Flags</span>' : '<span style="color:var(--accent-green);">0</span>'}</td>
+          </tr>
+        `;
+      });
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan='9' style='color:var(--accent-red);'>Error running screener: ${err.message}</td></tr>`;
     }
   }
 
