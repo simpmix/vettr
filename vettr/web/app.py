@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from vettr.engine import VettrEngine
+from vettr.forensics.metrics import ForensicMetrics
 from vettr.market.provider import MarketDataProvider
 from vettr.market.exchange_feed import ExchangePulseTracker
 from vettr.screener import VettrScreener, PRESET_WATCHLISTS
@@ -99,6 +100,39 @@ def get_sec_document(url: str):
         logger.error(f"Error fetching SEC doc {url}: {e}")
         return {"url": url, "error": str(e), "content": f"Unable to fetch SEC document: {e}"}
 
+@app.get("/api/methodology/{metric_id}")
+def get_methodology(metric_id: str):
+    """Returns academic methodology, mathematical formula, and fraud case studies for a metric."""
+    return ForensicMetrics.get_methodology_detail(metric_id.lower().strip())
+
+@app.get("/api/commands")
+def get_command_palette_actions():
+    """Returns available omnibar quick actions for the Command Palette."""
+    return {
+        "tabs": [
+            {"id": "tab-models", "title": "Forensic Models (Beneish, Altman, Piotroski, Montier)", "category": "Navigation"},
+            {"id": "tab-solvency", "title": "Solvency, Liquidity & Capital Health Matrix", "category": "Navigation"},
+            {"id": "tab-anomalies", "title": "Quantitative Accrual Divergences", "category": "Navigation"},
+            {"id": "tab-valuation", "title": "Reverse DCF & Growth Implied Model", "category": "Navigation"},
+            {"id": "tab-diff", "title": "Item 1A Risk Factors Disclosure Delta", "category": "Navigation"},
+            {"id": "tab-dupont", "title": "DuPont 5-Way Return on Equity Engine", "category": "Navigation"},
+            {"id": "tab-insiders", "title": "Form 4 Real-Time Insider Trading Radar", "category": "Navigation"},
+            {"id": "tab-events-8k", "title": "Form 8-K Material Event Disclosures", "category": "Navigation"},
+            {"id": "tab-compare", "title": "Head-to-Head Multi-Ticker Peer Benchmarking", "category": "Navigation"},
+            {"id": "tab-screener", "title": "Institutional Multi-Sector Screener", "category": "Navigation"},
+            {"id": "tab-financials", "title": "Audited Multi-Year GAAP Financial Series", "category": "Navigation"},
+            {"id": "tab-archive", "title": "Chronological SEC EDGAR Filing Archive", "category": "Navigation"}
+        ],
+        "actions": [
+            {"id": "copy_brief", "title": "Copy Executive Forensic Brief to Clipboard", "shortcut": "C", "category": "Action"},
+            {"id": "print_pdf", "title": "Print / Export Due Diligence PDF", "shortcut": "P", "category": "Action"},
+            {"id": "export_dossier", "title": "Export Markdown Due Diligence Dossier (.md)", "shortcut": "D", "category": "Action"},
+            {"id": "export_csv", "title": "Export Audited Financial Statements to CSV", "shortcut": "S", "category": "Action"},
+            {"id": "export_json", "title": "Download Full Raw Machine-Readable JSON", "shortcut": "J", "category": "Action"},
+            {"id": "toggle_chart", "title": "Toggle Candlestick vs Area Price Chart", "shortcut": "M", "category": "Action"}
+        ]
+    }
+
 @app.get("/api/compare")
 def compare_tickers(tickers: str = "NVDA,AMD,INTC"):
     """Side-by-side comparison of 2 to 4 tickers."""
@@ -109,6 +143,7 @@ def compare_tickers(tickers: str = "NVDA,AMD,INTC"):
             report = engine.analyze_ticker(t)
             forensics = report.get("forensics", {})
             mkt = report.get("market_data", {})
+            solv = report.get("solvency_liquidity", {})
             results.append({
                 "ticker": t,
                 "name": mkt.get("name", t),
@@ -119,6 +154,8 @@ def compare_tickers(tickers: str = "NVDA,AMD,INTC"):
                 "beneish": forensics.get("beneish_m_score", {}),
                 "altman": forensics.get("altman_z_score", {}),
                 "piotroski": forensics.get("piotroski_f_score", {}),
+                "montier": forensics.get("montier_c_score", {}),
+                "solvency": solv,
                 "anomalies_count": len(forensics.get("anomalies", [])),
                 "valuation": report.get("valuation_model", {})
             })

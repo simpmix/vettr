@@ -72,6 +72,9 @@
 
     <!-- Header Actions -->
     <div class="header-right">
+      <button id="btn-open-cmd" class="btn-action cmd-palette-trigger" title="Omnibar Command Palette (Ctrl+K / Cmd+K)">
+        <kbd class="hdr-kbd">⌘K</kbd> PALETTE
+      </button>
       <button id="btn-copy-brief" class="btn-action" title="Copy Executive Brief to Clipboard">
         COPY BRIEF
       </button>
@@ -288,23 +291,24 @@
     <!-- Navigation Tabs -->
     <nav class="terminal-tabs">
       <button class="tab-btn active" data-tab="tab-models">01. FORENSIC MODELS</button>
-      <button class="tab-btn" data-tab="tab-anomalies">02. ANOMALY DETECTOR</button>
-      <button class="tab-btn" data-tab="tab-valuation">03. REVERSE DCF VALUATION</button>
-      <button class="tab-btn" data-tab="tab-diff">04. 10-K DISCLOSURE DELTA</button>
-      <button class="tab-btn" data-tab="tab-dupont">05. DUPONT ROE ENGINE</button>
-      <button class="tab-btn" data-tab="tab-insiders">06. FORM 4 INSIDER RADAR</button>
-      <button class="tab-btn" data-tab="tab-events-8k">07. 8-K MATERIAL EVENTS</button>
-      <button class="tab-btn" data-tab="tab-compare">08. PEER COMPARISON</button>
-      <button class="tab-btn" data-tab="tab-screener">09. BATCH SCREENER</button>
-      <button class="tab-btn" data-tab="tab-financials">10. AUDITED GAAP XBRL</button>
-      <button class="tab-btn" data-tab="tab-archive">11. SEC ARCHIVE</button>
+      <button class="tab-btn" data-tab="tab-solvency">02. CAPITAL &amp; LIQUIDITY</button>
+      <button class="tab-btn" data-tab="tab-anomalies">03. ANOMALY DETECTOR</button>
+      <button class="tab-btn" data-tab="tab-valuation">04. REVERSE DCF VALUATION</button>
+      <button class="tab-btn" data-tab="tab-diff">05. 10-K DISCLOSURE DELTA</button>
+      <button class="tab-btn" data-tab="tab-dupont">06. DUPONT ROE ENGINE</button>
+      <button class="tab-btn" data-tab="tab-insiders">07. FORM 4 INSIDER RADAR</button>
+      <button class="tab-btn" data-tab="tab-events-8k">08. 8-K MATERIAL EVENTS</button>
+      <button class="tab-btn" data-tab="tab-compare">09. PEER COMPARISON</button>
+      <button class="tab-btn" data-tab="tab-screener">10. BATCH SCREENER</button>
+      <button class="tab-btn" data-tab="tab-financials">11. AUDITED GAAP XBRL</button>
+      <button class="tab-btn" data-tab="tab-archive">12. SEC ARCHIVE</button>
     </nav>
 
     <!-- Content Sections -->
     <div class="tab-panels">
       <!-- 01. FORENSIC MODELS -->
       <section id="tab-models" class="tab-panel active">
-        <div class="models-grid">
+        <div class="models-grid four-col">
           <!-- Beneish M-Score -->
           <div class="model-card">
             <div class="card-top">
@@ -316,8 +320,12 @@
               <span class="score-threshold">Benchmark: &lt; -1.78</span>
             </div>
             <div id="beneish-status" class="assessment-banner red">PROBABLE MANIPULATION RISK</div>
+            <div class="prob-strip">
+              <span class="prob-label">CALIBRATED PROBABILITY:</span>
+              <span id="beneish-prob" class="prob-val num red">11.5%</span>
+            </div>
             <p class="card-methodology">
-              8-variable probabilistic accounting regression. Scores above -1.78 indicate high statistical probability of earnings inflation or accelerated revenue recognition.
+              8-variable probabilistic accounting regression isolating earnings manipulation, unearned revenues, and capitalized expenses.
             </p>
             <table class="factors-table" id="beneish-table">
               <tbody></tbody>
@@ -335,8 +343,12 @@
               <span class="score-threshold">Safe &gt; 2.99 | Distress &lt; 1.81</span>
             </div>
             <div id="altman-status" class="assessment-banner green">SAFE ZONE (LOW DEFAULT RISK)</div>
+            <div class="prob-strip">
+              <span class="prob-label">NON-MFG / TECH Z'':</span>
+              <span id="altman-z-double" class="prob-val num green">--</span>
+            </div>
             <p class="card-methodology">
-              Empirical discriminant analysis predicting corporate solvency and insolvency probability within a 24-month horizon.
+              Empirical discriminant analysis predicting corporate solvency, balance sheet cushion, and 24-month bankruptcy risk.
             </p>
             <table class="factors-table" id="altman-table">
               <tbody></tbody>
@@ -354,11 +366,139 @@
               <span class="score-threshold">Prime: 8-9 | Weak: 0-4</span>
             </div>
             <div id="piotroski-status" class="assessment-banner yellow">STABLE / MODERATE (5-7)</div>
+            <div class="prob-strip">
+              <span class="prob-label">FUNDAMENTAL SIGNALS:</span>
+              <span id="piotroski-ratio" class="prob-val num yellow">5 / 9 PASSED</span>
+            </div>
             <p class="card-methodology">
               9-signal discrete binary metric evaluating operational momentum, balance sheet liquidity, and capital structure discipline.
             </p>
             <table class="factors-table" id="piotroski-table">
               <tbody></tbody>
+            </table>
+          </div>
+
+          <!-- Montier C-Score -->
+          <div class="model-card">
+            <div class="card-top">
+              <span class="card-title">Montier C-Score</span>
+              <span class="card-citation">Montier (2002)</span>
+            </div>
+            <div class="metric-strip">
+              <span id="montier-score" class="score-num green">1 / 6</span>
+              <span class="score-threshold">Normal: 0-2 | Scrutiny: &gt;= 3</span>
+            </div>
+            <div id="montier-status" class="assessment-banner green">CONSERVATIVE REPORTING</div>
+            <div class="prob-strip">
+              <span class="prob-label">CREATIVE FLAGS:</span>
+              <span id="montier-flags-count" class="prob-val num green">1 / 6 TRIGGERED</span>
+            </div>
+            <p class="card-methodology">
+              6-variable forensic model surfacing creative accounting, working capital decoupling, and aggressive balance sheet capitalization.
+            </p>
+            <table class="factors-table" id="montier-table">
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 02. CAPITAL & LIQUIDITY MATRIX -->
+      <section id="tab-solvency" class="tab-panel">
+        <div class="split-grid">
+          <!-- Balance Sheet Liquidity Suite -->
+          <div class="section-box">
+            <div class="section-header">
+              <span class="section-title">Liquidity &amp; Short-Term Solvency</span>
+              <span id="solvency-status-badge" class="pill-badge green">FORTRESS BALANCE SHEET</span>
+            </div>
+            <div class="solvency-metrics-grid">
+              <div class="solv-stat-card">
+                <span class="solv-label">Current Ratio (CA / CL)</span>
+                <span id="solv-current-ratio" class="solv-val num">--</span>
+                <span class="solv-sub">Benchmark: &gt; 1.50x</span>
+              </div>
+              <div class="solv-stat-card">
+                <span class="solv-label">Quick Ratio (Acid-Test)</span>
+                <span id="solv-quick-ratio" class="solv-val num">--</span>
+                <span class="solv-sub">Benchmark: &gt; 1.00x</span>
+              </div>
+              <div class="solv-stat-card">
+                <span class="solv-label">Cash Ratio (Cash / CL)</span>
+                <span id="solv-cash-ratio" class="solv-val num">--</span>
+                <span class="solv-sub">Benchmark: &gt; 0.50x</span>
+              </div>
+              <div class="solv-stat-card">
+                <span class="solv-label">Altman Z'' (Non-Mfg)</span>
+                <span id="solv-z-double" class="solv-val num">--</span>
+                <span class="solv-sub">Safe: &gt; 2.60 | Distress: &lt; 1.10</span>
+              </div>
+            </div>
+            <table class="factors-table" id="liquidity-factors-table">
+              <tbody>
+                <tr>
+                  <td><strong>Estimated Cash &amp; Liquid Equivalents</strong></td>
+                  <td id="solv-cash-abs" class="num">--</td>
+                </tr>
+                <tr>
+                  <td><strong>Short-Term Current Liabilities</strong></td>
+                  <td id="solv-cl-abs" class="num">--</td>
+                </tr>
+                <tr>
+                  <td><strong>Net Working Capital (CA - CL)</strong></td>
+                  <td id="solv-nwc-abs" class="num">--</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Debt Structure, Leverage & FCF Runway -->
+          <div class="section-box">
+            <div class="section-header">
+              <span class="section-title">Capital Structure, Leverage &amp; Cash Runway</span>
+              <span id="runway-status-badge" class="pill-badge green">SELF-FUNDING</span>
+            </div>
+            <div class="solvency-metrics-grid">
+              <div class="solv-stat-card">
+                <span class="solv-label">Net Debt / EBITDA</span>
+                <span id="solv-net-debt-ebitda" class="solv-val num">--</span>
+                <span class="solv-sub">Benchmark: &lt; 3.0x</span>
+              </div>
+              <div class="solv-stat-card">
+                <span class="solv-label">Interest Coverage Ratio</span>
+                <span id="solv-interest-cov" class="solv-val num">--</span>
+                <span class="solv-sub">EBIT / Est. Interest (&gt; 3.0x)</span>
+              </div>
+              <div class="solv-stat-card">
+                <span class="solv-label">Cash Conversion Cycle</span>
+                <span id="solv-ccc-days" class="solv-val num">--</span>
+                <span class="solv-sub">DSO + DIO - DPO (Days)</span>
+              </div>
+              <div class="solv-stat-card">
+                <span class="solv-label">Cash Runway Buffer</span>
+                <span id="solv-runway-months" class="solv-val num">--</span>
+                <span class="solv-sub">At Current FCF Burn Rate</span>
+              </div>
+            </div>
+            <table class="factors-table" id="capital-factors-table">
+              <tbody>
+                <tr>
+                  <td><strong>Total Long-Term Debt</strong></td>
+                  <td id="solv-debt-abs" class="num">--</td>
+                </tr>
+                <tr>
+                  <td><strong>Net Debt (Debt - Cash)</strong></td>
+                  <td id="solv-net-debt-abs" class="num">--</td>
+                </tr>
+                <tr>
+                  <td><strong>Days Payable Outstanding (DPO)</strong></td>
+                  <td id="solv-dpo-days" class="num">--</td>
+                </tr>
+                <tr>
+                  <td><strong>Annual Free Cash Flow (FCF)</strong></td>
+                  <td id="solv-fcf-abs" class="num">--</td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -615,6 +755,8 @@
                   <th class="num">Beneish M-Score</th>
                   <th class="num">Altman Z-Score</th>
                   <th class="num">Piotroski F</th>
+                  <th class="num">Montier C</th>
+                  <th>Solvency</th>
                   <th class="num">Anomalies</th>
                 </tr>
               </thead>
@@ -740,6 +882,72 @@
     </div>
   </div>
 
+  <!-- Institutional Omnibar Command Palette -->
+  <div id="command-palette" class="cmd-palette-backdrop hidden">
+    <div class="cmd-palette-modal" role="dialog" aria-modal="true" aria-label="Command Palette">
+      <div class="cmd-palette-header">
+        <span class="cmd-icon">&gt;</span>
+        <input type="text" id="cmd-palette-input" placeholder="Type a command or jump to forensic section (e.g., Solvency, Reverse DCF, Screener, NVDA, AAPL)..." autocomplete="off" spellcheck="false" />
+        <span class="cmd-badge">ESC TO EXIT</span>
+      </div>
+      <div id="cmd-palette-results" class="cmd-palette-results">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="cmd-palette-footer">
+        <span><kbd>↑</kbd> <kbd>↓</kbd> NAVIGATE</span>
+        <span><kbd>ENTER</kbd> EXECUTE</span>
+        <span><kbd>ESC</kbd> CLOSE</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metric Deep-Dive & Forensic Formula Inspector Modal -->
+  <div id="metric-inspector-modal" class="inspector-modal-backdrop hidden">
+    <div class="inspector-modal-container" role="dialog" aria-modal="true" aria-label="Forensic Inspector">
+      <div class="inspector-modal-header">
+        <div class="inspector-title-group">
+          <span class="inspector-badge" id="insp-badge">FORENSIC FORMULA</span>
+          <span class="inspector-title" id="insp-title">Metric Deep-Dive</span>
+        </div>
+        <button id="insp-close-btn" class="btn-action" title="Close (Esc)">
+          CLOSE [ESC] ✕
+        </button>
+      </div>
+      <div class="inspector-modal-body">
+        <div class="insp-meta-row">
+          <span class="insp-label">ACADEMIC CITATION:</span>
+          <span class="insp-val" id="insp-citation">--</span>
+        </div>
+        <div class="insp-formula-box">
+          <span class="insp-formula-label">MATHEMATICAL DERIVATION:</span>
+          <code class="insp-formula-code" id="insp-formula">--</code>
+        </div>
+        <div class="insp-grid">
+          <div class="insp-card">
+            <span class="insp-card-label">CURRENT SEC VALUE</span>
+            <span class="insp-card-num num" id="insp-val">--</span>
+          </div>
+          <div class="insp-card">
+            <span class="insp-card-label">BENCHMARK / THRESHOLD</span>
+            <span class="insp-card-benchmark" id="insp-benchmark">--</span>
+          </div>
+          <div class="insp-card">
+            <span class="insp-card-label">ASSESSMENT</span>
+            <span class="insp-card-status" id="insp-status">--</span>
+          </div>
+        </div>
+        <div class="insp-section">
+          <span class="insp-section-title">ECONOMIC &amp; FORENSIC IMPLICATION</span>
+          <p class="insp-desc" id="insp-desc">--</p>
+        </div>
+        <div class="insp-section" id="insp-case-box">
+          <span class="insp-section-title">HISTORICAL FORENSIC PRECEDENT / CASE STUDY</span>
+          <p class="insp-case" id="insp-case">--</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Clean Institutional Footer with Operational Telemetry & Hotkeys -->
   <footer class="terminal-footer">
     <div class="footer-left">
@@ -747,14 +955,15 @@
       <span class="footer-sep">•</span>
       <span class="footer-dim">SEC EDGAR REAL-TIME XBRL ENGINE</span>
       <span class="footer-sep">•</span>
-      <span class="footer-dim">VERSION 2.4.0</span>
+      <span class="footer-dim">VERSION 2.5.0</span>
     </div>
     <div class="footer-hotkeys">
-      <span class="hotkey-pill"><kbd>/</kbd> SEARCH</span>
+      <span class="hotkey-pill"><kbd>⌘K</kbd> PALETTE</span>
+      <span class="hotkey-pill"><kbd>/</kbd> QUERY</span>
       <span class="hotkey-pill"><kbd>1-9</kbd> TABS</span>
-      <span class="hotkey-pill"><kbd>C</kbd> COPY BRIEF</span>
-      <span class="hotkey-pill"><kbd>P</kbd> PDF / PRINT</span>
-      <span class="hotkey-pill"><kbd>M</kbd> TOGGLE CHART</span>
+      <span class="hotkey-pill"><kbd>C</kbd> BRIEF</span>
+      <span class="hotkey-pill"><kbd>P</kbd> PDF</span>
+      <span class="hotkey-pill"><kbd>M</kbd> CHART</span>
       <span class="hotkey-pill"><kbd>ESC</kbd> CLOSE</span>
     </div>
   </footer>

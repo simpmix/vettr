@@ -57,9 +57,11 @@ class VettrEngine:
         beneish = None
         altman = None
         piotroski = None
+        montier = None
         accrual_matrix = None
         financial_anomalies = []
         dupont_series = []
+        solvency = None
 
         if len(annual_series) >= 2:
             current_fy = annual_series[-1]
@@ -69,14 +71,18 @@ class VettrEngine:
             beneish = ForensicMetrics.calculate_beneish_m_score(current_fy, prior_fy)
             altman = ForensicMetrics.calculate_altman_z_score(current_fy, market_cap=market_cap)
             piotroski = ForensicMetrics.calculate_piotroski_f_score(current_fy, prior_fy)
+            montier = ForensicMetrics.calculate_montier_c_score(current_fy, prior_fy)
             accrual_matrix = ForensicMetrics.calculate_accrual_matrix(current_fy, prior_fy)
             financial_anomalies = AnomalyDetector.analyze_financial_anomalies(current_fy, prior_fy)
             dupont_series = [DuPontAnalyzer.decompose_roe(rec) for rec in annual_series[-5:]]
+            solvency = ForensicMetrics.calculate_solvency_liquidity(current_fy, market_data=market_data, prior=prior_fy)
         elif len(annual_series) == 1:
             current_fy = annual_series[-1]
             altman = ForensicMetrics.calculate_altman_z_score(current_fy, market_cap=market_data.get("market_cap"))
+            montier = ForensicMetrics.calculate_montier_c_score(current_fy)
             accrual_matrix = ForensicMetrics.calculate_accrual_matrix(current_fy)
             dupont_series = [DuPontAnalyzer.decompose_roe(current_fy)]
+            solvency = ForensicMetrics.calculate_solvency_liquidity(current_fy, market_data=market_data)
 
         # 6. Qualitative Disclosure Analysis & Text Diff
         sections_latest = {}
@@ -135,10 +141,16 @@ class VettrEngine:
                 risk_score += 15
         if piotroski and piotroski.get("score", 9) <= 4:
             risk_score += 15
+        if montier and montier.get("is_flagged"):
+            risk_score += 15
         if accrual_matrix and accrual_matrix.get("sloan_risk") == "HIGH":
             risk_score += 20
         elif accrual_matrix and accrual_matrix.get("sloan_risk") == "MEDIUM":
             risk_score += 10
+        if solvency and solvency.get("solvency_rating") == "HIGH_RISK":
+            risk_score += 15
+        elif solvency and solvency.get("solvency_rating") == "MODERATE":
+            risk_score += 6
         if len(financial_anomalies) > 0:
             risk_score += min(len(financial_anomalies) * 10, 25)
         if len(regulatory_flags) > 0:
@@ -190,16 +202,26 @@ class VettrEngine:
         # Executive Forensic Synthesis Narrative
         synthesis_parts = []
         if beneish:
+            prob = beneish.get("manipulation_probability_pct", 0)
             if beneish.get("is_manipulator"):
-                synthesis_parts.append(f"Beneish M-Score ({beneish.get('score')}) triggers earnings manipulation threshold (-1.78)")
+                synthesis_parts.append(f"Beneish M-Score ({beneish.get('score')}) triggers earnings manipulation threshold ({prob}% probability)")
             else:
-                synthesis_parts.append(f"Beneish M-Score ({beneish.get('score')}) indicates low probability of accounting manipulation")
+                synthesis_parts.append(f"Beneish M-Score ({beneish.get('score')}) indicates low probability of accounting manipulation ({prob}%)")
 
         if altman:
             synthesis_parts.append(f"Altman Z-Score ({altman.get('score')}) places entity in {altman.get('zone')}")
 
         if piotroski:
             synthesis_parts.append(f"Piotroski F-Score ({piotroski.get('score')}/9) reflects {piotroski.get('rating')}")
+
+        if montier:
+            if montier.get("is_flagged"):
+                synthesis_parts.append(f"Montier C-Score ({montier.get('score')}/6) warns of aggressive creative accounting")
+            else:
+                synthesis_parts.append(f"Montier C-Score ({montier.get('score')}/6) reflects conservative accounting practices")
+
+        if solvency:
+            synthesis_parts.append(f"Capital structure assessment: {solvency.get('solvency_status')} (Quick Ratio: {solvency.get('quick_ratio')}x, CCC: {solvency.get('cash_conversion_cycle_days')}d)")
 
         if accrual_matrix:
             s_pct = accrual_matrix.get("sloan_accrual_pct", 0)
@@ -223,12 +245,15 @@ class VettrEngine:
                 "beneish_m_score": beneish,
                 "altman_z_score": altman,
                 "piotroski_f_score": piotroski,
+                "montier_c_score": montier,
+                "solvency_liquidity": solvency,
                 "accrual_matrix": accrual_matrix,
                 "anomalies": financial_anomalies,
                 "regulatory_flags": regulatory_flags,
                 "sentiment": sentiment_analysis
             },
             "growth_metrics": growth_metrics,
+            "solvency_liquidity": solvency,
             "financial_series": annual_series[-5:],  # Last 5 fiscal years
             "dupont_series": dupont_series,
             "valuation_model": valuation_model,

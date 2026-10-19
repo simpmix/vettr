@@ -14,6 +14,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnRunCompare = document.getElementById("btn-run-compare");
   const compareInput = document.getElementById("compare-input");
 
+  // Command Palette Elements
+  const cmdPalette = document.getElementById("command-palette");
+  const cmdPaletteInput = document.getElementById("cmd-palette-input");
+  const cmdPaletteResults = document.getElementById("cmd-palette-results");
+  const btnOpenCmd = document.getElementById("btn-open-cmd");
+  let cmdPaletteItems = [];
+  let selectedCmdIndex = -1;
+
+  // Metric Formula Inspector Modal Elements
+  const metricInspectorModal = document.getElementById("metric-inspector-modal");
+  const inspCloseBtn = document.getElementById("insp-close-btn");
+  const inspBadge = document.getElementById("insp-badge");
+  const inspTitle = document.getElementById("insp-title");
+  const inspCitation = document.getElementById("insp-citation");
+  const inspFormula = document.getElementById("insp-formula");
+  const inspVal = document.getElementById("insp-val");
+  const inspBenchmark = document.getElementById("insp-benchmark");
+  const inspStatus = document.getElementById("insp-status");
+  const inspDesc = document.getElementById("insp-desc");
+  const inspCase = document.getElementById("insp-case");
+
   let currentTicker = "NVDA";
   let currentReportData = null;
   let debounceTimer = null;
@@ -35,6 +56,8 @@ document.addEventListener("DOMContentLoaded", () => {
         targetPanel.classList.add("active");
       }
 
+      updateUrlHash(currentTicker, targetId);
+
       if (targetId === "tab-screener") {
         const activePreset = document.querySelector(".screener-switcher .preset-btn.active");
         const preset = activePreset ? activePreset.getAttribute("data-preset") : "mega_tech";
@@ -47,8 +70,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Global Institutional Keyboard Hotkeys
   document.addEventListener("keydown", (e) => {
-    // Esc closes modal or search dropdown
+    // Cmd+K or Ctrl+K opens/toggles Command Palette
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      toggleCommandPalette();
+      return;
+    }
+
+    // Esc closes modal, command palette, or search dropdown
     if (e.key === "Escape") {
+      if (cmdPalette && !cmdPalette.classList.contains("hidden")) {
+        closeCommandPalette();
+        return;
+      }
+      if (metricInspectorModal && !metricInspectorModal.classList.contains("hidden")) {
+        closeMetricInspector();
+        return;
+      }
       closeSecModal();
       searchDropdown.classList.add("hidden");
       return;
@@ -56,6 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const isInputFocused = document.activeElement === tickerInput ||
                            document.activeElement === compareInput ||
+                           document.activeElement === cmdPaletteInput ||
                            (document.getElementById("modal-filter-input") && document.activeElement === document.getElementById("modal-filter-input"));
 
     if (e.key === "/" && !isInputFocused) {
@@ -66,13 +105,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (!isInputFocused) {
-      // 1 through 9: Instantly switch tabs 01 to 09
+      // 1 through 9, and 0 for tab 10
       if (e.key >= "1" && e.key <= "9") {
         const tabIdx = parseInt(e.key, 10) - 1;
         if (tabBtns[tabIdx]) {
           e.preventDefault();
           tabBtns[tabIdx].click();
         }
+      } else if (e.key === "0" && tabBtns[9]) {
+        e.preventDefault();
+        tabBtns[9].click();
       } else if (e.key.toLowerCase() === "c") {
         e.preventDefault();
         btnCopyBrief.click();
@@ -507,6 +549,273 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // --- Institutional Omnibar Command Palette ---
+  async function loadCommandPaletteCatalog() {
+    try {
+      const resp = await fetch("/api/commands");
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const tabs = (data.tabs || []).map(t => ({
+        type: "tab",
+        id: t.id,
+        title: t.title,
+        category: "FORENSIC NAVIGATION",
+        badge: "JUMP"
+      }));
+      const actions = (data.actions || []).map(a => ({
+        type: "action",
+        id: a.id,
+        title: a.title,
+        category: "WORKFLOW ACTION",
+        badge: a.shortcut ? `[${a.shortcut}]` : "EXEC"
+      }));
+
+      const topTickers = [
+        { ticker: "NVDA", name: "NVIDIA Corp (Semiconductors)" },
+        { ticker: "AAPL", name: "Apple Inc (Consumer Hardware & Services)" },
+        { ticker: "MSFT", name: "Microsoft Corp (Cloud & Enterprise Software)" },
+        { ticker: "TSLA", name: "Tesla Inc (Electric Vehicles & Autonomous)" },
+        { ticker: "AMD", name: "Advanced Micro Devices (Computing & AI)" },
+        { ticker: "PLTR", name: "Palantir Technologies (Intelligence AI Platforms)" },
+        { ticker: "MSTR", name: "MicroStrategy (Bitcoin Treasury Reserve)" },
+        { ticker: "SMCI", name: "Super Micro Computer (AI Server Infrastructure)" },
+        { ticker: "AMZN", name: "Amazon.com Inc (E-Commerce & AWS)" },
+        { ticker: "GOOGL", name: "Alphabet Inc (Search & Cloud AI)" },
+        { ticker: "META", name: "Meta Platforms (Social Ecosystem & AI)" }
+      ].map(c => ({
+        type: "ticker",
+        id: c.ticker,
+        title: `Analyze ${c.ticker} — ${c.name}`,
+        category: "SECURITY DIRECTORY",
+        badge: c.ticker
+      }));
+
+      cmdPaletteItems = [...tabs, ...actions, ...topTickers];
+    } catch (err) {
+      console.warn("Command palette catalog load error:", err);
+    }
+  }
+
+  function openCommandPalette() {
+    if (!cmdPalette) return;
+    cmdPalette.classList.remove("hidden");
+    if (cmdPaletteInput) {
+      cmdPaletteInput.value = "";
+      cmdPaletteInput.focus();
+    }
+    renderCommandPaletteResults("");
+  }
+
+  function closeCommandPalette() {
+    if (!cmdPalette) return;
+    cmdPalette.classList.add("hidden");
+  }
+
+  function toggleCommandPalette() {
+    if (!cmdPalette) return;
+    if (cmdPalette.classList.contains("hidden")) {
+      openCommandPalette();
+    } else {
+      closeCommandPalette();
+    }
+  }
+
+  function renderCommandPaletteResults(query) {
+    if (!cmdPaletteResults) return;
+    cmdPaletteResults.innerHTML = "";
+    selectedCmdIndex = -1;
+
+    const q = (query || "").trim().toLowerCase();
+    const filtered = cmdPaletteItems.filter(item => {
+      if (!q) return true;
+      return item.title.toLowerCase().includes(q) ||
+             item.category.toLowerCase().includes(q) ||
+             (item.id && item.id.toLowerCase().includes(q));
+    });
+
+    if (filtered.length === 0) {
+      // If user typed a potential ticker not in top list
+      if (q && q.length <= 6 && !q.includes(" ")) {
+        const customTicker = q.toUpperCase();
+        cmdPaletteResults.innerHTML = `
+          <div class="cmd-item selected" data-type="ticker" data-id="${customTicker}">
+            <div class="cmd-item-left">
+              <span class="cmd-item-cat">SECURITY DIRECTORY</span>
+              <span class="cmd-item-title">Interrogate SEC EDGAR archives for <strong>${customTicker}</strong></span>
+            </div>
+            <span class="cmd-item-badge">${customTicker}</span>
+          </div>
+        `;
+        selectedCmdIndex = 0;
+        bindCmdItemClicks();
+        return;
+      }
+      cmdPaletteResults.innerHTML = `<div class="cmd-empty">No matching commands or tickers found for "${query}"</div>`;
+      return;
+    }
+
+    filtered.slice(0, 16).forEach((item, idx) => {
+      const div = document.createElement("div");
+      div.className = `cmd-item ${idx === 0 ? 'selected' : ''}`;
+      div.setAttribute("data-type", item.type);
+      div.setAttribute("data-id", item.id);
+      div.innerHTML = `
+        <div class="cmd-item-left">
+          <span class="cmd-item-cat">${item.category}</span>
+          <span class="cmd-item-title">${item.title}</span>
+        </div>
+        <span class="cmd-item-badge">${item.badge || ''}</span>
+      `;
+      cmdPaletteResults.appendChild(div);
+    });
+
+    if (filtered.length > 0) selectedCmdIndex = 0;
+    bindCmdItemClicks();
+  }
+
+  function bindCmdItemClicks() {
+    if (!cmdPaletteResults) return;
+    cmdPaletteResults.querySelectorAll(".cmd-item").forEach((el, idx) => {
+      el.addEventListener("mouseenter", () => {
+        selectedCmdIndex = idx;
+        updateCmdSelection();
+      });
+      el.addEventListener("click", () => {
+        executeCommandItem(el);
+      });
+    });
+  }
+
+  function updateCmdSelection() {
+    if (!cmdPaletteResults) return;
+    const items = cmdPaletteResults.querySelectorAll(".cmd-item");
+    items.forEach((item, idx) => {
+      if (idx === selectedCmdIndex) {
+        item.classList.add("selected");
+        item.scrollIntoView({ block: "nearest" });
+      } else {
+        item.classList.remove("selected");
+      }
+    });
+  }
+
+  function executeCommandItem(el) {
+    if (!el) return;
+    const type = el.getAttribute("data-type");
+    const id = el.getAttribute("data-id");
+    closeCommandPalette();
+
+    if (type === "tab") {
+      const targetBtn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
+      if (targetBtn) targetBtn.click();
+    } else if (type === "ticker") {
+      tickerInput.value = id;
+      runAnalysis(id);
+    } else if (type === "action") {
+      if (id === "copy_brief") btnCopyBrief.click();
+      else if (id === "print_pdf") { if (btnPrintReport) btnPrintReport.click(); }
+      else if (id === "export_dossier") btnExportDossier.click();
+      else if (id === "export_csv") btnExportCsv.click();
+      else if (id === "export_json") btnExportJson.click();
+      else if (id === "toggle_chart") toggleChartMode();
+    }
+  }
+
+  if (btnOpenCmd) {
+    btnOpenCmd.addEventListener("click", openCommandPalette);
+  }
+
+  if (cmdPalette) {
+    cmdPalette.addEventListener("click", (e) => {
+      if (e.target === cmdPalette) closeCommandPalette();
+    });
+  }
+
+  if (cmdPaletteInput) {
+    cmdPaletteInput.addEventListener("input", () => {
+      renderCommandPaletteResults(cmdPaletteInput.value);
+    });
+
+    cmdPaletteInput.addEventListener("keydown", (e) => {
+      const items = cmdPaletteResults ? cmdPaletteResults.querySelectorAll(".cmd-item") : [];
+      if (items.length === 0) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        selectedCmdIndex = (selectedCmdIndex + 1) % items.length;
+        updateCmdSelection();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        selectedCmdIndex = (selectedCmdIndex - 1 + items.length) % items.length;
+        updateCmdSelection();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (selectedCmdIndex >= 0 && items[selectedCmdIndex]) {
+          executeCommandItem(items[selectedCmdIndex]);
+        }
+      }
+    });
+  }
+
+  // --- Metric Deep-Dive Formula Inspector Modal ---
+  async function openMetricInspector(metricId, curVal, curStatus, customTitle) {
+    if (!metricInspectorModal) return;
+    metricInspectorModal.classList.remove("hidden");
+
+    if (inspBadge) inspBadge.textContent = "ACADEMIC FORENSICS";
+    if (inspTitle) inspTitle.textContent = customTitle || "Metric Deep-Dive";
+    if (inspCitation) inspCitation.textContent = "Querying Methodology Library...";
+    if (inspFormula) inspFormula.textContent = "Loading mathematical derivation...";
+    if (inspVal) inspVal.textContent = curVal !== undefined && curVal !== null ? String(curVal) : "--";
+    if (inspBenchmark) inspBenchmark.textContent = "Loading benchmarks...";
+    if (inspStatus) inspStatus.textContent = curStatus || "SURFACED";
+    if (inspDesc) inspDesc.textContent = "Loading economic rationale...";
+    if (inspCase) inspCase.textContent = "Loading fraud case studies...";
+
+    try {
+      const resp = await fetch(`/api/methodology/${encodeURIComponent(metricId)}`);
+      if (!resp.ok) throw new Error("Methodology unavailable");
+      const meta = await resp.json();
+
+      if (inspTitle && !customTitle) inspTitle.textContent = meta.name || metricId;
+      if (inspCitation) inspCitation.textContent = meta.author || "Peer-Reviewed Accounting Literature";
+      if (inspFormula) inspFormula.textContent = meta.formula || "Mathematical derivation unavailable";
+      if (inspBenchmark) inspBenchmark.textContent = meta.benchmark || "--";
+      if (inspDesc) inspDesc.textContent = meta.importance || "--";
+      if (inspCase) inspCase.textContent = meta.case_study || "No historical precedent logged.";
+    } catch (err) {
+      if (inspCitation) inspCitation.textContent = "VETTR Quantitative Forensics Engine";
+      if (inspDesc) inspDesc.textContent = `Telemetry details for ${metricId}.`;
+    }
+  }
+
+  function closeMetricInspector() {
+    if (metricInspectorModal) metricInspectorModal.classList.add("hidden");
+  }
+
+  if (inspCloseBtn) inspCloseBtn.addEventListener("click", closeMetricInspector);
+  if (metricInspectorModal) {
+    metricInspectorModal.addEventListener("click", (e) => {
+      if (e.target === metricInspectorModal) closeMetricInspector();
+    });
+  }
+
+  // --- URL Hash Synchronization ---
+  function updateUrlHash(ticker, tabId) {
+    const t = (ticker || currentTicker || "NVDA").toUpperCase();
+    const activeTab = tabId || (document.querySelector(".tab-btn.active") ? document.querySelector(".tab-btn.active").getAttribute("data-tab") : "tab-models");
+    const targetHash = `#${t}/${activeTab}`;
+    if (window.location.hash !== targetHash) {
+      try {
+        history.replaceState(null, "", targetHash);
+      } catch (e) {
+        window.location.hash = targetHash;
+      }
+    }
+  }
+
+  loadCommandPaletteCatalog();
+
   // --- Interactive Financial OHLCV Trajectory & Volume Chart ---
   let currentChartPeriod = "6mo";
   let isCandleMode = false;
@@ -797,6 +1106,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function runAnalysis(ticker) {
     currentTicker = ticker.toUpperCase();
     saveRecentSearch(currentTicker);
+    updateUrlHash(currentTicker);
     loadChartData(currentTicker, currentChartPeriod);
     loadingCurtain.classList.remove("hidden");
     try {
@@ -876,6 +1186,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (sloanEl) {
       const sVal = gm.sloan_accrual_pct;
       sloanEl.textContent = sVal !== null && sVal !== undefined ? `${sVal >= 0 ? '+' : ''}${sVal}%` : "N/A";
+      sloanEl.style.cursor = "pointer";
+      sloanEl.title = "Click to inspect Sloan Accrual formula & Sunbeam case study";
+      sloanEl.onclick = () => openMetricInspector("sloan_accrual", `${sVal}%`, gm.sloan_status, "Sloan Accrual Anomaly");
     }
     if (dsoEl) dsoEl.textContent = gm.dso_days !== null && gm.dso_days !== undefined ? `${gm.dso_days} Days` : "N/A";
 
@@ -886,10 +1199,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // 2. Tab 01: Forensic Models
-    // Beneish
+    // Beneish M-Score
     const b = forensics.beneish_m_score;
     const bScore = document.getElementById("beneish-score");
     const bStatus = document.getElementById("beneish-status");
+    const bProbEl = document.getElementById("beneish-prob");
     const bTable = document.querySelector("#beneish-table tbody");
     bTable.innerHTML = "";
 
@@ -899,14 +1213,24 @@ document.addEventListener("DOMContentLoaded", () => {
       bStatus.textContent = b.status;
       bStatus.className = `assessment-banner ${b.is_manipulator ? 'red' : 'green'}`;
 
+      if (bProbEl) {
+        const pVal = b.manipulation_probability_pct !== undefined ? b.manipulation_probability_pct : 0.0;
+        bProbEl.textContent = `${pVal}%`;
+        bProbEl.className = `prob-val num ${b.is_manipulator ? 'red' : 'green'}`;
+      }
+
       if (b.variables) {
         for (const [k, v] of Object.entries(b.variables)) {
-          bTable.innerHTML += `
-            <tr>
-              <td>${k}</td>
-              <td class="num">${v}</td>
-            </tr>
+          const tr = document.createElement("tr");
+          tr.className = "clickable";
+          tr.innerHTML = `
+            <td>${k}</td>
+            <td class="num">${v}</td>
           `;
+          tr.addEventListener("click", () => {
+            openMetricInspector("beneish_m", `${k} = ${v}`, b.status, `Beneish Factor: ${k}`);
+          });
+          bTable.appendChild(tr);
         }
       }
     } else {
@@ -914,10 +1238,11 @@ document.addEventListener("DOMContentLoaded", () => {
       bStatus.textContent = "INSUFFICIENT HISTORICAL DATA";
     }
 
-    // Altman Z
+    // Altman Z-Score
     const z = forensics.altman_z_score;
     const zScore = document.getElementById("altman-score");
     const zStatus = document.getElementById("altman-status");
+    const zDoubleEl = document.getElementById("altman-z-double");
     const zTable = document.querySelector("#altman-table tbody");
     zTable.innerHTML = "";
 
@@ -928,14 +1253,23 @@ document.addEventListener("DOMContentLoaded", () => {
       zStatus.textContent = z.zone;
       zStatus.className = `assessment-banner ${zClass}`;
 
+      if (zDoubleEl) {
+        zDoubleEl.textContent = z.z_double_prime !== undefined ? z.z_double_prime : "--";
+        zDoubleEl.className = `prob-val num ${zClass}`;
+      }
+
       if (z.components) {
         for (const [k, v] of Object.entries(z.components)) {
-          zTable.innerHTML += `
-            <tr>
-              <td>${k}</td>
-              <td class="num">${v}</td>
-            </tr>
+          const tr = document.createElement("tr");
+          tr.className = "clickable";
+          tr.innerHTML = `
+            <td>${k}</td>
+            <td class="num">${v}</td>
           `;
+          tr.addEventListener("click", () => {
+            openMetricInspector("altman_z", `${k} = ${v}`, z.zone, `Altman Factor: ${k}`);
+          });
+          zTable.appendChild(tr);
         }
       }
     } else {
@@ -943,10 +1277,11 @@ document.addEventListener("DOMContentLoaded", () => {
       zStatus.textContent = "N/A";
     }
 
-    // Piotroski F
+    // Piotroski F-Score
     const f = forensics.piotroski_f_score;
     const fScore = document.getElementById("piotroski-score");
     const fStatus = document.getElementById("piotroski-status");
+    const piRatioEl = document.getElementById("piotroski-ratio");
     const fTable = document.querySelector("#piotroski-table tbody");
     fTable.innerHTML = "";
 
@@ -957,14 +1292,24 @@ document.addEventListener("DOMContentLoaded", () => {
       fStatus.textContent = f.rating;
       fStatus.className = `assessment-banner ${fClass}`;
 
+      if (piRatioEl) {
+        piRatioEl.textContent = `${f.score} / ${f.max_score} PASSED`;
+        piRatioEl.className = `prob-val num ${fClass}`;
+      }
+
       if (f.signals) {
         for (const [k, v] of Object.entries(f.signals)) {
-          fTable.innerHTML += `
-            <tr>
-              <td>${k}</td>
-              <td class="num" style="color: ${v === 1 ? 'var(--color-green)' : 'var(--color-red)'}; font-weight:700;">${v === 1 ? 'PASS' : 'FAIL'}</td>
-            </tr>
+          const isPass = v === 1;
+          const tr = document.createElement("tr");
+          tr.className = "clickable";
+          tr.innerHTML = `
+            <td>${k}</td>
+            <td class="num" style="color: ${isPass ? 'var(--color-green)' : 'var(--color-red)'}; font-weight:700;">${isPass ? 'PASS' : 'FAIL'}</td>
           `;
+          tr.addEventListener("click", () => {
+            openMetricInspector("piotroski_f", isPass ? "PASSED" : "FAILED", f.rating, `Piotroski Signal: ${k}`);
+          });
+          fTable.appendChild(tr);
         }
       }
     } else {
@@ -972,7 +1317,122 @@ document.addEventListener("DOMContentLoaded", () => {
       fStatus.textContent = "N/A";
     }
 
-    // 3. Tab 02: Anomalies
+    // Montier C-Score
+    const m = forensics.montier_c_score;
+    const mScoreEl = document.getElementById("montier-score");
+    const mStatusEl = document.getElementById("montier-status");
+    const mFlagsEl = document.getElementById("montier-flags-count");
+    const mTable = document.querySelector("#montier-table tbody");
+    if (mTable) mTable.innerHTML = "";
+
+    if (m) {
+      const mClass = m.score >= 4 ? 'red' : (m.score >= 2 ? 'yellow' : 'green');
+      if (mScoreEl) {
+        mScoreEl.textContent = `${m.score} / ${m.max_score}`;
+        mScoreEl.className = `score-num ${mClass}`;
+      }
+      if (mStatusEl) {
+        mStatusEl.textContent = m.status;
+        mStatusEl.className = `assessment-banner ${mClass}`;
+      }
+      if (mFlagsEl) {
+        mFlagsEl.textContent = `${m.score} / ${m.max_score} TRIGGERED`;
+        mFlagsEl.className = `prob-val num ${mClass}`;
+      }
+
+      if (m.flag_details && mTable) {
+        for (const [k, d] of Object.entries(m.flag_details)) {
+          const trig = d.triggered;
+          const tr = document.createElement("tr");
+          tr.className = "clickable";
+          tr.innerHTML = `
+            <td>${d.label}</td>
+            <td class="num" style="color: ${trig ? 'var(--color-red)' : 'var(--color-green)'}; font-weight:700;">
+              ${trig ? 'FLAG' : 'PASS'}
+            </td>
+          `;
+          tr.addEventListener("click", () => {
+            openMetricInspector("montier_c", trig ? "FLAGGED" : "PASS", m.status, `Montier Flag: ${d.label}`);
+          });
+          mTable.appendChild(tr);
+        }
+      }
+    } else if (mScoreEl) {
+      mScoreEl.textContent = "N/A";
+      if (mStatusEl) mStatusEl.textContent = "N/A";
+    }
+
+    // 3. Tab 02: Capital & Liquidity Matrix
+    const solv = data.solvency_liquidity || forensics.solvency_liquidity || {};
+    const finSeries = data.financial_series || [];
+    const latestFin = finSeries.length > 0 ? finSeries[finSeries.length - 1] : {};
+
+    const solvBadge = document.getElementById("solvency-status-badge");
+    const runwayBadge = document.getElementById("runway-status-badge");
+
+    if (solvBadge) {
+      solvBadge.textContent = solv.solvency_status || "FORTRESS BALANCE SHEET";
+      const sClass = solv.solvency_rating === "HIGH_RISK" ? "red" : (solv.solvency_rating === "MODERATE" ? "yellow" : "green");
+      solvBadge.className = `pill-badge ${sClass}`;
+    }
+
+    if (runwayBadge) {
+      runwayBadge.textContent = solv.cash_runway_status || "SELF-FUNDING";
+      const isBurn = typeof solv.cash_runway_months === "number" && solv.cash_runway_months < 12;
+      runwayBadge.className = `pill-badge ${isBurn ? 'red' : 'green'}`;
+    }
+
+    const solvCurrentEl = document.getElementById("solv-current-ratio");
+    const solvQuickEl = document.getElementById("solv-quick-ratio");
+    const solvCashEl = document.getElementById("solv-cash-ratio");
+    const solvZDoubleEl = document.getElementById("solv-z-double");
+
+    if (solvCurrentEl) solvCurrentEl.textContent = solv.current_ratio !== undefined ? `${solv.current_ratio}x` : "--";
+    if (solvQuickEl) solvQuickEl.textContent = solv.quick_ratio !== undefined ? `${solv.quick_ratio}x` : "--";
+    if (solvCashEl) solvCashEl.textContent = solv.cash_ratio !== undefined ? `${solv.cash_ratio}x` : "--";
+    if (solvZDoubleEl) solvZDoubleEl.textContent = solv.altman_z_double_prime !== undefined ? `${solv.altman_z_double_prime}` : "--";
+
+    const solvCashAbs = document.getElementById("solv-cash-abs");
+    const solvClAbs = document.getElementById("solv-cl-abs");
+    const solvNwcAbs = document.getElementById("solv-nwc-abs");
+
+    const caVal = Number(latestFin.current_assets || (latestFin.total_assets ? latestFin.total_assets * 0.4 : 0));
+    const clVal = Number(latestFin.current_liabilities || (latestFin.total_liabilities ? latestFin.total_liabilities * 0.35 : 0));
+
+    if (solvCashAbs) solvCashAbs.textContent = formatMoney(solv.estimated_cash);
+    if (solvClAbs) solvClAbs.textContent = formatMoney(clVal);
+    if (solvNwcAbs) solvNwcAbs.textContent = formatMoney(caVal - clVal);
+
+    const solvNetDebtEbitda = document.getElementById("solv-net-debt-ebitda");
+    const solvInterestCov = document.getElementById("solv-interest-cov");
+    const solvCccDays = document.getElementById("solv-ccc-days");
+    const solvRunwayMonths = document.getElementById("solv-runway-months");
+
+    if (solvNetDebtEbitda) solvNetDebtEbitda.textContent = solv.net_debt_to_ebitda !== undefined ? `${solv.net_debt_to_ebitda}x` : "--";
+    if (solvInterestCov) solvInterestCov.textContent = solv.interest_coverage_ratio !== undefined ? `${solv.interest_coverage_ratio}x` : "--";
+    if (solvCccDays) solvCccDays.textContent = solv.cash_conversion_cycle_days !== undefined ? `${solv.cash_conversion_cycle_days} Days` : "--";
+    if (solvRunwayMonths) solvRunwayMonths.textContent = solv.cash_runway_months === "INF" ? "Self-Funding" : (solv.cash_runway_months !== undefined ? `${solv.cash_runway_months} Mos` : "--");
+
+    const solvDebtAbs = document.getElementById("solv-debt-abs");
+    const solvNetDebtAbs = document.getElementById("solv-net-debt-abs");
+    const solvDpoDays = document.getElementById("solv-dpo-days");
+    const solvFcfAbs = document.getElementById("solv-fcf-abs");
+
+    if (solvDebtAbs) solvDebtAbs.textContent = formatMoney(solv.total_debt);
+    if (solvNetDebtAbs) solvNetDebtAbs.textContent = formatMoney(solv.net_debt);
+    if (solvDpoDays) solvDpoDays.textContent = solv.dpo_days !== undefined ? `${solv.dpo_days} Days` : "--";
+    if (solvFcfAbs) solvFcfAbs.textContent = formatMoney(solv.fcf_estimate);
+
+    document.querySelectorAll(".solv-stat-card").forEach(card => {
+      card.style.cursor = "pointer";
+      card.onclick = () => {
+        const label = card.querySelector(".solv-label") ? card.querySelector(".solv-label").textContent : "Capital Solvency";
+        const val = card.querySelector(".solv-val") ? card.querySelector(".solv-val").textContent : "";
+        openMetricInspector("altman_z", val, solv.solvency_status, `Solvency & Liquidity: ${label}`);
+      };
+    });
+
+    // 4. Tab 03: Anomalies
     const anoContainer = document.getElementById("anomalies-container");
     const anoPill = document.getElementById("anomaly-count-pill");
     const anomalies = forensics.anomalies || [];
@@ -1236,7 +1696,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Load Peer Comparison
   async function loadComparison(tickersStr) {
     const tbody = document.querySelector("#compare-table tbody");
-    tbody.innerHTML = "<tr><td colspan='9' style='text-align:center; padding: 24px; color: var(--text-muted);'>Interrogating SEC EDGAR across peer group...</td></tr>";
+    tbody.innerHTML = "<tr><td colspan='11' style='text-align:center; padding: 24px; color: var(--text-muted);'>Interrogating SEC EDGAR across peer group...</td></tr>";
 
     try {
       const resp = await fetch(`/api/compare?tickers=${encodeURIComponent(tickersStr)}`);
@@ -1251,7 +1711,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const b = r.beneish || {};
         const z = r.altman || {};
         const pi = r.piotroski || {};
+        const m = r.montier || {};
+        const solv = r.solvency || {};
+
         const bColor = b.is_manipulator ? "var(--color-red)" : "var(--color-green)";
+        const mClass = m.score >= 4 ? "var(--color-red)" : (m.score >= 2 ? "var(--color-amber)" : "var(--color-green)");
+        const solvClass = solv.solvency_rating === "HIGH_RISK" ? "red" : (solv.solvency_rating === "MODERATE" ? "yellow" : "green");
 
         const tr = document.createElement("tr");
         tr.className = "clickable";
@@ -1264,6 +1729,8 @@ document.addEventListener("DOMContentLoaded", () => {
           <td class="num" style="color: ${bColor}; font-weight: 700;">${b.score || 'N/A'}</td>
           <td class="num">${z.score || 'N/A'}</td>
           <td class="num">${pi.score ? pi.score + '/9' : 'N/A'}</td>
+          <td class="num" style="color: ${mClass}; font-weight: 700;">${m.score !== undefined ? m.score + '/6' : 'N/A'}</td>
+          <td><span class="pill-badge ${solvClass}">${solv.solvency_status || 'STABLE'}</span></td>
           <td class="num">${r.anomalies_count > 0 ? '<span style="color:var(--color-red); font-weight:700;">' + r.anomalies_count + ' FLAGGED</span>' : '<span style="color:var(--color-green);">CLEAN</span>'}</td>
         `;
 
@@ -1276,7 +1743,7 @@ document.addEventListener("DOMContentLoaded", () => {
         tbody.appendChild(tr);
       });
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan='9' style='color:var(--color-red);'>Comparison Error: ${err.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan='11' style='color:var(--color-red);'>Comparison Error: ${err.message}</td></tr>`;
     }
   }
 
@@ -1383,7 +1850,44 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchExchangePulse();
   setInterval(fetchExchangePulse, 15000);
 
-  // Initial load
+  // Initial load with URL Hash state synchronization
   renderRecentPills();
-  runAnalysis("NVDA");
+  const rawHash = (window.location.hash || "").replace(/^#/, "").trim();
+  let startupTicker = "NVDA";
+  let startupTab = null;
+
+  if (rawHash) {
+    const parts = rawHash.split("/");
+    if (parts[0]) startupTicker = parts[0].toUpperCase();
+    if (parts[1]) startupTab = parts[1];
+  }
+
+  tickerInput.value = startupTicker;
+  runAnalysis(startupTicker).then(() => {
+    if (startupTab) {
+      const btn = document.querySelector(`.tab-btn[data-tab="${startupTab}"]`);
+      if (btn) btn.click();
+    }
+  });
+
+  window.addEventListener("hashchange", () => {
+    const h = (window.location.hash || "").replace(/^#/, "").trim();
+    if (!h) return;
+    const parts = h.split("/");
+    const t = parts[0] ? parts[0].toUpperCase() : null;
+    const tabId = parts[1] || null;
+
+    if (t && t !== currentTicker) {
+      tickerInput.value = t;
+      runAnalysis(t).then(() => {
+        if (tabId) {
+          const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+          if (btn) btn.click();
+        }
+      });
+    } else if (tabId) {
+      const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+      if (btn) btn.click();
+    }
+  });
 });

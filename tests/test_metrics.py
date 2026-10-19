@@ -79,5 +79,32 @@ class TestForensicSuite(unittest.TestCase):
         self.assertEqual(acc["sloan_risk"], "HIGH")
         self.assertIn("CRITICAL ACCRUAL ANOMALY", acc["sloan_status"])
 
+    def test_beneish_probability(self):
+        m = ForensicMetrics.calculate_beneish_m_score(self.clean_current, self.clean_prior)
+        self.assertIn("manipulation_probability_pct", m)
+        self.assertLess(m["manipulation_probability_pct"], 15.0)
+
+    def test_montier_c_score_clean(self):
+        c = ForensicMetrics.calculate_montier_c_score(self.clean_current, self.clean_prior)
+        self.assertLessEqual(c["score"], 2)
+        self.assertFalse(c["is_flagged"])
+
+    def test_montier_c_score_flagged(self):
+        bad_current = dict(self.clean_current)
+        bad_current["operating_cash_flow"] = 1_000_000.0
+        bad_current["accounts_receivable"] = 40_000_000.0
+        bad_current["inventory"] = 30_000_000.0
+        bad_current["total_assets"] = 250_000_000.0  # huge asset growth
+        c = ForensicMetrics.calculate_montier_c_score(bad_current, self.clean_prior)
+        self.assertGreaterEqual(c["score"], 3)
+        self.assertTrue(c["is_flagged"])
+
+    def test_solvency_liquidity_ratios(self):
+        solv = ForensicMetrics.calculate_solvency_liquidity(self.clean_current)
+        self.assertGreater(solv["current_ratio"], 1.0)
+        self.assertGreater(solv["quick_ratio"], 0.5)
+        self.assertGreater(solv["cash_conversion_cycle_days"], 0)
+        self.assertIn("solvency_status", solv)
+
 if __name__ == "__main__":
     unittest.main()
